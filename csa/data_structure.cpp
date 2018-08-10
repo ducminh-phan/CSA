@@ -40,7 +40,7 @@ void Timetable::parse_transfers() {
     for (CSVIterator<uint32_t> iter {transfers_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto from = static_cast<node_id_t>((*iter)[0]);
         auto to = static_cast<node_id_t>((*iter)[1]);
-        auto time = static_cast<Time>((*iter)[2]);
+        auto time = static_cast<Time::value_type>((*iter)[2]);
 
         stops[from].transfers.emplace_back(to, time);
     }
@@ -58,8 +58,8 @@ void Timetable::parse_connections() {
 
     for (CSVIterator<uint32_t> iter {stop_times_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto trip_id = static_cast<trip_id_t>((*iter)[0]);
-        auto arr = static_cast<Time>((*iter)[1]);
-        auto dep = static_cast<Time>((*iter)[2]);
+        auto arr = static_cast<Time::value_type>((*iter)[1]);
+        auto dep = static_cast<Time::value_type>((*iter)[2]);
         auto stop_id = static_cast<node_id_t>((*iter)[3]);
 
         trip_events[trip_id].emplace_back(stop_id, arr, dep);
