@@ -13,8 +13,6 @@
 using node_id_t = uint32_t;
 using trip_id_t = int32_t;
 
-const node_id_t MAX_STATIONS = 100000;
-
 
 class Time {
 public:
@@ -85,13 +83,13 @@ using Events = std::vector<StopTimeEvent>;
 
 
 struct Transfer {
-    node_id_t dest;
+    node_id_t dest_id;
     Time time;
 
-    Transfer(node_id_t dest, Time::value_type time) : dest {dest}, time {time} {};
+    Transfer(node_id_t dest, Time::value_type time) : dest_id {dest}, time {time} {};
 
     friend bool operator<(const Transfer& t1, const Transfer& t2) {
-        return (t1.time < t2.time) || ((t1.time == t2.time) && (t1.dest < t2.dest));
+        return (t1.time < t2.time) || ((t1.time == t2.time) && (t1.dest_id < t2.dest_id));
     }
 };
 
