@@ -1,13 +1,20 @@
 #include <algorithm>
-#include <unordered_map>
+#include <vector>
 
 #include "csa.hpp"
 
 
+const node_id_t MAX_STATIONS = 100000;
+const trip_id_t MAX_TRIPS = 1000000;
+
+
 Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_id,
                            const Time& departure_time) const {
-    std::unordered_map<node_id_t, Time> earliest_arrival_time;
-    std::unordered_map<trip_id_t, bool> is_reached;
+    std::vector<Time> earliest_arrival_time;
+    std::vector<bool> is_reached;
+
+    earliest_arrival_time.resize(MAX_STATIONS);
+    is_reached.resize(MAX_TRIPS);
 
     // Walk from the source to all of its neighbours
     for (const auto& transfer: _timetable->stops[source_id].transfers) {
