@@ -8,17 +8,17 @@
 
 void write_results(const Results& results, const std::string& name) {
     std::ofstream running_time_file {"../" + name + "_running_time.csv"};
-    std::ofstream arrival_times_file {"../" + name + "_arrival_times.csv"};
+    std::ofstream arrival_time_file {"../" + name + "_arrival_times.csv"};
 
     running_time_file << "running_time\n";
-    arrival_times_file << "arrival_times\n";
+    arrival_time_file << "arrival_time\n";
 
     running_time_file << std::fixed << std::setprecision(4);
 
     for (const auto& result: results) {
-        running_time_file << result.rank << ',' << result.running_time << '\n';
+        running_time_file << result.running_time << '\n';
 
-        arrival_times_file << result.arrival_time << '\n';
+        arrival_time_file << result.arrival_time << '\n';
     }
 }
 
