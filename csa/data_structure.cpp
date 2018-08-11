@@ -76,9 +76,11 @@ void Timetable::parse_connections() {
             Time departure_time = events[i].departure_time;
             Time arrival_time = events[i + 1].arrival_time;
 
-            connections.emplace(trip_id, departure_stop_id, arrival_stop_id, departure_time, arrival_time);
+            connections.emplace_back(trip_id, departure_stop_id, arrival_stop_id, departure_time, arrival_time);
         }
     }
+
+    std::sort(connections.begin(), connections.end());
 }
 
 

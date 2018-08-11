@@ -141,7 +141,7 @@ private:
 public:
     std::string name;
     std::string path;
-    std::set<Connection> connections;
+    std::vector<Connection> connections;
     std::vector<Stop> stops;
 
     explicit Timetable(std::string name_) : name {std::move(name_)} {

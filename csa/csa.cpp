@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <unordered_map>
 
 #include "csa.hpp"
@@ -14,14 +15,15 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
     }
 
     // Find the first connection departing not before departure_time,
-    // first we need to create the "dummy" connection, then use std::set::lower_bound
+    // first we need to create the "dummy" connection, then use std::lower_bound
     // to get the const_iterator pointing to the first connection in the set of connections
     // which is equivalent or goes after this dummy connection. Since the connections are ordered
     // lexicographically, with the order of attribute:
     // departure_time -> arrival_time -> departure_stop_id -> arrival_stop_id -> trip_id,
     // the const_iterator obtained will point to the connection we need to find
     Connection dummy_conn {0, 0, 0, departure_time, departure_time};
-    auto first_conn_iter = _timetable->connections.lower_bound(dummy_conn);
+    auto first_conn_iter = std::lower_bound(_timetable->connections.begin(), _timetable->connections.end(),
+                                            dummy_conn);
 
     for (auto iter = first_conn_iter; iter != _timetable->connections.end(); ++iter) {
         auto conn = *iter;
