@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "-Wall -O3")
 
-file(MAKE_DIRECTORY ${CATCH_INCLUDE_DIR}/build)
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/build)
 
 include_directories(include)
 include_directories(csa)
