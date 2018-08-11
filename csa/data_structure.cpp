@@ -21,7 +21,7 @@ void Timetable::parse_data() {
 
 
 void Timetable::parse_stops() {
-    auto stop_routes_file = read_dataset_file<igzstream>(_path + "stop_routes.csv.gz");
+    auto stop_routes_file = read_dataset_file<igzstream>(path + "stop_routes.csv.gz");
 
     for (CSVIterator<uint32_t> iter {stop_routes_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto stop_id = static_cast<node_id_t>((*iter)[0]);
@@ -35,7 +35,7 @@ void Timetable::parse_stops() {
 
 
 void Timetable::parse_transfers() {
-    auto transfers_file = read_dataset_file<igzstream>(_path + "transfers.csv.gz");
+    auto transfers_file = read_dataset_file<igzstream>(path + "transfers.csv.gz");
 
     for (CSVIterator<uint32_t> iter {transfers_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto from = static_cast<node_id_t>((*iter)[0]);
@@ -52,7 +52,7 @@ void Timetable::parse_transfers() {
 
 
 void Timetable::parse_connections() {
-    auto stop_times_file = read_dataset_file<igzstream>(_path + "stop_times.csv.gz");
+    auto stop_times_file = read_dataset_file<igzstream>(path + "stop_times.csv.gz");
 
     std::unordered_map<trip_id_t, Events> trip_events;
 
@@ -86,7 +86,7 @@ void Timetable::summary() const {
     std::cout << std::string(80, '-') << std::endl;
 
     std::cout << "Summary of the dataset:" << std::endl;
-    std::cout << "Name: " << _name << std::endl;
+    std::cout << "Name: " << name << std::endl;
 
     int count_transfers = 0;
     for (const auto& stop: stops) {

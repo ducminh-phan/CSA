@@ -130,9 +130,6 @@ public:
 
 class Timetable {
 private:
-    std::string _name;
-    std::string _path;
-
     void parse_data();
 
     void parse_stops();
@@ -142,11 +139,13 @@ private:
     void parse_connections();
 
 public:
+    std::string name;
+    std::string path;
     std::set<Connection> connections;
     std::vector<Stop> stops;
 
-    explicit Timetable(std::string name) : _name {std::move(name)} {
-        _path = "../Public-Transit-Data/" + _name + "/";
+    explicit Timetable(std::string name_) : name {std::move(name_)} {
+        path = "../Public-Transit-Data/" + name + "/";
         parse_data();
     }
 

@@ -1,6 +1,8 @@
 #include <iostream>
 
 #include "data_structure.hpp"
+#include "csa.hpp"
+#include <experiments.hpp>
 
 
 void usage_exit(char* argv[]) {
@@ -37,6 +39,9 @@ int main(int argc, char* argv[]) {
 
     const Timetable timetable {name};
     timetable.summary();
+
+    Experiment exp {&timetable};
+    exp.run();
 
     return 0;
 }
