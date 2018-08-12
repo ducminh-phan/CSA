@@ -93,11 +93,14 @@ struct Transfer {
     }
 };
 
+using hubs_t = std::vector<std::pair<Time, node_id_t>>;
+
 
 struct Stop {
     node_id_t id;
     std::vector<Transfer> transfers;
-
+    hubs_t in_hubs;
+    hubs_t out_hubs;
 
     explicit Stop(node_id_t sid) : id {sid} {};
 };
@@ -141,10 +144,11 @@ private:
 public:
     std::string name;
     std::string path;
+    bool use_hl;
     std::vector<Connection> connections;
     std::vector<Stop> stops;
 
-    explicit Timetable(std::string name_) : name {std::move(name_)} {
+    Timetable(std::string name_, bool hl) : name {std::move(name_)}, use_hl {hl} {
         path = "../Public-Transit-Data/" + name + "/";
         parse_data();
     }

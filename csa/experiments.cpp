@@ -25,7 +25,7 @@ void write_results(const Results& results, const std::string& name) {
 
 Queries Experiment::read_queries() {
     Queries queries;
-    auto queries_file = read_dataset_file<std::ifstream>(m_timetable->path + "queries.csv");
+    auto queries_file = read_dataset_file<std::ifstream>(_timetable.path + "queries.csv");
 
     for (CSVIterator<uint32_t> iter {queries_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto r = static_cast<uint16_t>((*iter)[0]);
@@ -42,11 +42,11 @@ Queries Experiment::read_queries() {
 
 void Experiment::run() const {
     Results res;
-    ConnectionScan csa {m_timetable};
+    ConnectionScan csa {&_timetable, _timetable.use_hl};
 
-    res.resize(m_queries.size());
-    for (size_t i = 0; i < m_queries.size(); ++i) {
-        auto query = m_queries[i];
+    res.resize(_queries.size());
+    for (size_t i = 0; i < _queries.size(); ++i) {
+        auto query = _queries[i];
 
         Timer timer;
 
@@ -59,7 +59,7 @@ void Experiment::run() const {
         std::cout << i << std::endl;
     }
 
-    write_results(res, m_timetable->name);
+    write_results(res, _timetable.name);
 
     Profiler::report();
 }

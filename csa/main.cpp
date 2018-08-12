@@ -24,10 +24,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    const Timetable timetable {name};
-    timetable.summary();
-
-    Experiment exp {&timetable};
+    Experiment exp {name, use_hl};
     exp.run();
 
     return 0;

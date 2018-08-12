@@ -40,14 +40,16 @@ void write_results(const Results& results, const std::string& name);
 
 class Experiment {
 private:
-    const Timetable* const m_timetable;
-    const Queries m_queries;
+    const Timetable _timetable;
+    const Queries _queries;
 
     Queries read_queries();
 
 public:
-    explicit Experiment(const Timetable* timetable) :
-            m_timetable {timetable}, m_queries {read_queries()} {}
+    Experiment(const std::string& name, bool use_hl) :
+            _timetable {name, use_hl}, _queries {read_queries()} {
+        _timetable.summary();
+    }
 
     void run() const;
 };
