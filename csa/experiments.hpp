@@ -35,7 +35,7 @@ struct Result {
 using Results = std::vector<Result>;
 
 
-void write_results(const Results& results, const std::string& name);
+void write_results(const Results& results, const std::string& name, bool use_hl);
 
 
 class Experiment {

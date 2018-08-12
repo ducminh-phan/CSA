@@ -4,7 +4,6 @@
 #include "csa.hpp"
 
 
-const node_id_t MAX_STATIONS = 100000;
 const trip_id_t MAX_TRIPS = 1000000;
 
 
@@ -13,12 +12,34 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
     std::vector<Time> earliest_arrival_time;
     std::vector<bool> is_reached;
 
-    earliest_arrival_time.resize(MAX_STATIONS);
+    earliest_arrival_time.resize(MAX_NODES);
     is_reached.resize(MAX_TRIPS);
 
     // Walk from the source to all of its neighbours
-    for (const auto& transfer: _timetable->stops[source_id].transfers) {
-        earliest_arrival_time[transfer.dest_id] = departure_time + transfer.time;
+    if (!_use_hl) {
+        for (const auto& transfer: _timetable->stops[source_id].transfers) {
+            earliest_arrival_time[transfer.dest_id] = departure_time + transfer.time;
+        }
+    } else {
+        // Propagate the departure time from the source stop to all its out-hubs
+        for (const auto& hub_pair: _timetable->stops[source_id].out_hubs) {
+            auto walking_time = hub_pair.first;
+            auto hub_id = hub_pair.second;
+
+            auto tmp = departure_time + walking_time;
+            earliest_arrival_time[hub_id] = tmp;
+
+            // Then propagate from the out-hubs to its inverse in-hubs
+            for (const auto& inverse_hub_pair: _timetable->inverse_in_hubs[hub_id]) {
+                auto _walking_time = inverse_hub_pair.first;
+                auto stop_id = inverse_hub_pair.second;
+
+                earliest_arrival_time[stop_id] = std::min(
+                        earliest_arrival_time[stop_id],
+                        tmp + _walking_time
+                );
+            }
+        }
     }
 
     // Find the first connection departing not before departure_time,
@@ -37,6 +58,26 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
 
         if (earliest_arrival_time[target_id] <= conn.departure_time) break;
 
+        const Stop& arrival_stop = _timetable->stops[conn.arrival_stop_id];
+        const Stop& departure_stop = _timetable->stops[conn.departure_stop_id];
+
+        if (_use_hl) {
+            // Update the earliest arrival time of the departure stop of the connection
+            // using its in-hubs
+            for (const auto& hub_pair: _timetable->stops[conn.departure_stop_id].in_hubs) {
+                auto walking_time = hub_pair.first;
+                auto hub_id = hub_pair.second;
+
+                auto tmp = earliest_arrival_time[hub_id] + walking_time;
+
+                if (tmp > earliest_arrival_time[target_id]) break;
+
+                if (tmp < earliest_arrival_time[departure_stop.id]) {
+                    earliest_arrival_time[departure_stop.id] = tmp;
+                }
+            }
+        }
+
         // Check if the trip containing the connection has been reached,
         // or we can get to the connection's departure stop before its departure
         if (is_reached[conn.trip_id] || earliest_arrival_time[conn.departure_stop_id] <= conn.departure_time) {
@@ -47,18 +88,34 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
             if (conn.arrival_time < earliest_arrival_time[conn.arrival_stop_id]) {
                 earliest_arrival_time[conn.arrival_stop_id] = conn.arrival_time;
 
-                // Update the earliest arrival time of the out-neighbours of the arrival stop
-                for (const auto& transfer: _timetable->stops[conn.arrival_stop_id].transfers) {
-                    // Compute the arrival time at the destination of the transfer
-                    Time tmp = conn.arrival_time + transfer.time;
+                if (!_use_hl) {
+                    // Update the earliest arrival time of the out-neighbours of the arrival stop
+                    for (const auto& transfer: arrival_stop.transfers) {
+                        // Compute the arrival time at the destination of the transfer
+                        Time tmp = conn.arrival_time + transfer.time;
 
-                    // Since the transfers are sorted in the increasing order of walking time,
-                    // we can skip the scanning of the transfers as soon as the arrival time
-                    // of the destination is later than that of the target stop
-                    if (tmp > earliest_arrival_time[target_id]) break;
+                        // Since the transfers are sorted in the increasing order of walking time,
+                        // we can skip the scanning of the transfers as soon as the arrival time
+                        // of the destination is later than that of the target stop
+                        if (tmp > earliest_arrival_time[target_id]) break;
 
-                    if (tmp < earliest_arrival_time[transfer.dest_id]) {
-                        earliest_arrival_time[transfer.dest_id] = tmp;
+                        if (tmp < earliest_arrival_time[transfer.dest_id]) {
+                            earliest_arrival_time[transfer.dest_id] = tmp;
+                        }
+                    }
+                } else {
+                    // Update the earliest arrival time of the out-hubs of the arrival stop
+                    for (const auto& hub_pair: arrival_stop.out_hubs) {
+                        auto walking_time = hub_pair.first;
+                        auto hub_id = hub_pair.second;
+
+                        auto tmp = conn.arrival_time + walking_time;
+
+                        if (tmp > earliest_arrival_time[target_id]) break;
+
+                        if (tmp < earliest_arrival_time[hub_id]) {
+                            earliest_arrival_time[hub_id] = tmp;
+                        }
                     }
                 }
             }

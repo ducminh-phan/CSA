@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <unordered_map>
 
 #include "data_structure.hpp"
@@ -12,7 +13,13 @@ void Timetable::parse_data() {
     std::cout << "Parsing the data..." << std::endl;
 
     parse_stops();
-    parse_transfers();
+
+    if (use_hl) {
+        parse_hubs();
+    } else {
+        parse_transfers();
+    }
+
     parse_connections();
 
     std::cout << "Complete parsing the data." << std::endl;
@@ -28,7 +35,7 @@ void Timetable::parse_stops() {
 
         // Add a new stop if we encounter a new id, note that we might have a missing id.
         while (stops.size() <= stop_id) {
-            stops.emplace_back(static_cast<node_id_t>(stops.size() - 1));
+            stops.emplace_back(static_cast<node_id_t>(stops.size()));
         }
     }
 }
@@ -47,6 +54,39 @@ void Timetable::parse_transfers() {
 
     for (auto& stop: stops) {
         std::sort(stop.transfers.begin(), stop.transfers.end());
+    }
+}
+
+
+void Timetable::parse_hubs() {
+    auto in_hub_file = read_dataset_file<igzstream>(path + "in_hubs.gr.gz");
+
+    inverse_in_hubs.resize(MAX_NODES);
+
+    for (CSVIterator<uint32_t> iter {in_hub_file.get(), false, ' '}; iter != CSVIterator<uint32_t>(); ++iter) {
+        auto node_id = static_cast<node_id_t>((*iter)[0]);
+        auto stop_id = static_cast<node_id_t>((*iter)[1]);
+        auto distance = static_cast<distance_t>((*iter)[2]);
+        auto time = distance_to_time(distance);
+
+        stops[stop_id].in_hubs.emplace_back(time, node_id);
+        inverse_in_hubs[node_id].emplace_back(time, stop_id);
+    }
+
+    auto out_hub_file = read_dataset_file<igzstream>(path + "out_hubs.gr.gz");
+
+    for (CSVIterator<uint32_t> iter {out_hub_file.get(), false, ' '}; iter != CSVIterator<uint32_t>(); ++iter) {
+        auto stop_id = static_cast<node_id_t>((*iter)[0]);
+        auto node_id = static_cast<node_id_t>((*iter)[1]);
+        auto distance = static_cast<distance_t>((*iter)[2]);
+        auto time = distance_to_time(distance);
+
+        stops[stop_id].out_hubs.emplace_back(time, node_id);
+    }
+
+    for (auto& stop: stops) {
+        std::sort(stop.in_hubs.begin(), stop.in_hubs.end());
+        std::sort(stop.out_hubs.begin(), stop.out_hubs.end());
     }
 }
 
@@ -83,7 +123,6 @@ void Timetable::parse_connections() {
     std::sort(connections.begin(), connections.end());
 }
 
-
 void Timetable::summary() const {
     std::cout << std::string(80, '-') << std::endl;
 
@@ -102,4 +141,11 @@ void Timetable::summary() const {
     std::cout << connections.size() << " connections" << std::endl;
 
     std::cout << std::string(80, '-') << std::endl;
+}
+
+
+Time distance_to_time(const distance_t& d) {
+    static const double v {4.0};  // km/h
+
+    return Time {static_cast<Time::value_type>(std::lround(9 * d / 25 / v))};
 }

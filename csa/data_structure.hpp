@@ -12,6 +12,8 @@
 
 using node_id_t = uint32_t;
 using trip_id_t = int32_t;
+using distance_t = uint32_t;
+const node_id_t MAX_NODES = 1000000;
 
 
 class Time {
@@ -93,6 +95,7 @@ struct Transfer {
     }
 };
 
+
 using hubs_t = std::vector<std::pair<Time, node_id_t>>;
 
 
@@ -139,6 +142,8 @@ private:
 
     void parse_transfers();
 
+    void parse_hubs();
+
     void parse_connections();
 
 public:
@@ -147,6 +152,7 @@ public:
     bool use_hl;
     std::vector<Connection> connections;
     std::vector<Stop> stops;
+    std::vector<hubs_t> inverse_in_hubs;
 
     Timetable(std::string name_, bool hl) : name {std::move(name_)}, use_hl {hl} {
         path = "../Public-Transit-Data/" + name + "/";
@@ -156,5 +162,7 @@ public:
     void summary() const;
 };
 
+
+Time distance_to_time(const distance_t& d);
 
 #endif // DATA_STRUCTURE_HPP

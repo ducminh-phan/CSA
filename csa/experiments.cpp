@@ -6,9 +6,11 @@
 #include "csv_reader.hpp"
 
 
-void write_results(const Results& results, const std::string& name) {
-    std::ofstream running_time_file {"../" + name + "_running_time.csv"};
-    std::ofstream arrival_time_file {"../" + name + "_arrival_times.csv"};
+void write_results(const Results& results, const std::string& name, bool use_hl) {
+    std::string algo_str = use_hl ? "HLCSA" : "CSA";
+
+    std::ofstream running_time_file {"../" + name + '_' + algo_str + "_running_time.csv"};
+    std::ofstream arrival_time_file {"../" + name + '_' + algo_str + "_arrival_times.csv"};
 
     running_time_file << "running_time\n";
     arrival_time_file << "arrival_time\n";
@@ -59,7 +61,7 @@ void Experiment::run() const {
         std::cout << i << std::endl;
     }
 
-    write_results(res, _timetable.name);
+    write_results(res, _timetable.name, _timetable.use_hl);
 
     Profiler::report();
 }
