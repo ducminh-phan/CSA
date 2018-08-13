@@ -15,6 +15,9 @@ public:
             _timetable {timetable_p}, _use_hl {use_hl} {};
 
     Time query(const node_id_t& source_id, const node_id_t& target_id, const Time& departure_time) const;
+
+    Time backward_query(const node_id_t& source_id, const node_id_t& target_id,
+                        const Time& arrival_time) const;
 };
 
 #endif // CSA_HPP

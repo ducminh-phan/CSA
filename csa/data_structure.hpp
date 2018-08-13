@@ -72,6 +72,9 @@ public:
 };
 
 
+const Time NEG_INF_TIME {Time::neg_inf};
+
+
 struct StopTimeEvent {
     node_id_t stop_id;
     Time arrival_time;
@@ -102,6 +105,7 @@ using hubs_t = std::vector<std::pair<Time, node_id_t>>;
 struct Stop {
     node_id_t id;
     std::vector<Transfer> transfers;
+    std::vector<Transfer> backward_transfers;
     hubs_t in_hubs;
     hubs_t out_hubs;
 
@@ -153,6 +157,7 @@ public:
     std::vector<Connection> connections;
     std::vector<Stop> stops;
     std::vector<hubs_t> inverse_in_hubs;
+    std::vector<hubs_t> inverse_out_hubs;
 
     Timetable(std::string name_, bool hl) : name {std::move(name_)}, use_hl {hl} {
         path = "../Public-Transit-Data/" + name + "/";

@@ -50,10 +50,12 @@ void Timetable::parse_transfers() {
         auto time = static_cast<Time::value_type>((*iter)[2]);
 
         stops[from].transfers.emplace_back(to, time);
+        stops[to].backward_transfers.emplace_back(from, time);
     }
 
     for (auto& stop: stops) {
         std::sort(stop.transfers.begin(), stop.transfers.end());
+        std::sort(stop.backward_transfers.begin(), stop.backward_transfers.end());
     }
 }
 
@@ -62,6 +64,7 @@ void Timetable::parse_hubs() {
     auto in_hub_file = read_dataset_file<igzstream>(path + "in_hubs.gr.gz");
 
     inverse_in_hubs.resize(MAX_NODES);
+    inverse_out_hubs.resize(MAX_NODES);
 
     for (CSVIterator<uint32_t> iter {in_hub_file.get(), false, ' '}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto node_id = static_cast<node_id_t>((*iter)[0]);
@@ -82,6 +85,7 @@ void Timetable::parse_hubs() {
         auto time = distance_to_time(distance);
 
         stops[stop_id].out_hubs.emplace_back(time, node_id);
+        inverse_out_hubs[node_id].emplace_back(time, stop_id);
     }
 
     for (auto& stop: stops) {
