@@ -55,11 +55,26 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
 
     for (auto iter = first_conn_iter; iter != _timetable->connections.end(); ++iter) {
         const Connection& conn = *iter;
-
-        if (earliest_arrival_time[target_id] <= conn.departure_time) break;
-
         const Stop& arrival_stop = _timetable->stops[conn.arrival_stop_id];
-        const Stop& departure_stop = _timetable->stops[conn.departure_stop_id];
+
+        if (earliest_arrival_time[target_id] <= conn.departure_time) {
+            // We need to check if earliest_arrival_time[target_id] can still be improved
+            // before break out of the loop
+            if (_use_hl) {
+                for (const auto& hub_pair: _timetable->stops[target_id].in_hubs) {
+                    auto walking_time = hub_pair.first;
+                    auto hub_id = hub_pair.second;
+
+                    auto tmp = earliest_arrival_time[hub_id] + walking_time;
+
+                    if (tmp < earliest_arrival_time[target_id]) {
+                        earliest_arrival_time[target_id] = tmp;
+                    }
+                }
+            }
+
+            break;
+        }
 
         if (_use_hl) {
             // Update the earliest arrival time of the departure stop of the connection
@@ -70,10 +85,11 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
 
                 auto tmp = earliest_arrival_time[hub_id] + walking_time;
 
-                if (tmp > earliest_arrival_time[target_id]) break;
+                // We cannot use early stopping here since earliest_arrival_time[hub_id] is not
+                // a constant, thus tmp is not increasing
 
-                if (tmp < earliest_arrival_time[departure_stop.id]) {
-                    earliest_arrival_time[departure_stop.id] = tmp;
+                if (tmp < earliest_arrival_time[conn.departure_stop_id]) {
+                    earliest_arrival_time[conn.departure_stop_id] = tmp;
                 }
             }
         }
