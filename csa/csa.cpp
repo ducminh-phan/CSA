@@ -58,40 +58,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
         const Stop& arrival_stop = _timetable->stops[conn.arrival_stop_id];
 
         if (earliest_arrival_time[target_id] <= conn.departure_time) {
-            // We need to check if earliest_arrival_time[target_id] can still be improved
-            // before break out of the loop
-            if (_use_hl) {
-                for (const auto& hub_pair: _timetable->stops[target_id].in_hubs) {
-                    auto walking_time = hub_pair.first;
-                    auto hub_id = hub_pair.second;
-
-                    auto tmp = earliest_arrival_time[hub_id] + walking_time;
-
-                    if (tmp < earliest_arrival_time[target_id]) {
-                        earliest_arrival_time[target_id] = tmp;
-                    }
-                }
-            }
-
             break;
-        }
-
-        if (_use_hl) {
-            // Update the earliest arrival time of the departure stop of the connection
-            // using its in-hubs
-            for (const auto& hub_pair: _timetable->stops[conn.departure_stop_id].in_hubs) {
-                auto walking_time = hub_pair.first;
-                auto hub_id = hub_pair.second;
-
-                auto tmp = earliest_arrival_time[hub_id] + walking_time;
-
-                // We cannot use early stopping here since earliest_arrival_time[hub_id] is not
-                // a constant, thus tmp is not increasing
-
-                if (tmp < earliest_arrival_time[conn.departure_stop_id]) {
-                    earliest_arrival_time[conn.departure_stop_id] = tmp;
-                }
-            }
         }
 
         // Check if the trip containing the connection has been reached,
@@ -131,6 +98,23 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
 
                         if (tmp < earliest_arrival_time[hub_id]) {
                             earliest_arrival_time[hub_id] = tmp;
+                        }
+                    }
+
+                    // The second stage of SSSP: update the arrival time of each stop
+                    // using its in-hubs
+                    for (const auto& stop: _timetable->stops) {
+                        auto stop_id = stop.id;
+
+                        for (const auto& hub_pair: stop.in_hubs) {
+                            auto walking_time = hub_pair.first;
+                            auto hub_id = hub_pair.second;
+
+                            auto tmp = earliest_arrival_time[hub_id] + walking_time;
+
+                            if (tmp < earliest_arrival_time[stop_id]) {
+                                earliest_arrival_time[stop_id] = tmp;
+                            }
                         }
                     }
                 }
