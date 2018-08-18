@@ -8,6 +8,7 @@
 #include <tuple>
 #include <vector>
 
+#include "config.hpp"
 #include "utilities.hpp"
 
 using node_id_t = uint32_t;
@@ -151,15 +152,13 @@ private:
     void parse_connections();
 
 public:
-    std::string name;
     std::string path;
-    bool use_hl;
     std::vector<Connection> connections;
     std::vector<Stop> stops;
     std::vector<hubs_t> inverse_in_hubs;
     std::vector<hubs_t> inverse_out_hubs;
 
-    Timetable(std::string name_, bool hl) : name {std::move(name_)}, use_hl {hl} {
+    Timetable() {
         path = "../Public-Transit-Data/" + name + "/";
         parse_data();
     }

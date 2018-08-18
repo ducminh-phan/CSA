@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "config.hpp"
 #include "csa.hpp"
 
 
@@ -16,7 +17,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
     is_reached.resize(MAX_TRIPS);
 
     // Walk from the source to all of its neighbours
-    if (!_use_hl) {
+    if (!use_hl) {
         for (const auto& transfer: _timetable->stops[source_id].transfers) {
             earliest_arrival_time[transfer.dest_id] = departure_time + transfer.time;
         }
@@ -60,7 +61,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
         if (earliest_arrival_time[target_id] <= conn.departure_time) {
             // We need to check if earliest_arrival_time[target_id] can still be improved
             // before break out of the loop
-            if (_use_hl) {
+            if (use_hl) {
                 for (const auto& hub_pair: _timetable->stops[target_id].in_hubs) {
                     auto walking_time = hub_pair.first;
                     auto hub_id = hub_pair.second;
@@ -76,7 +77,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
             break;
         }
 
-        if (_use_hl) {
+        if (use_hl) {
             // Update the earliest arrival time of the departure stop of the connection
             // using its in-hubs
             for (const auto& hub_pair: _timetable->stops[conn.departure_stop_id].in_hubs) {
@@ -104,7 +105,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
             if (conn.arrival_time < earliest_arrival_time[conn.arrival_stop_id]) {
                 earliest_arrival_time[conn.arrival_stop_id] = conn.arrival_time;
 
-                if (!_use_hl) {
+                if (!use_hl) {
                     // Update the earliest arrival time of the out-neighbours of the arrival stop
                     for (const auto& transfer: arrival_stop.transfers) {
                         // Compute the arrival time at the destination of the transfer
@@ -151,7 +152,7 @@ Time ConnectionScan::backward_query(const node_id_t& source_id, const node_id_t&
     is_reached.resize(MAX_TRIPS);
 
     // Walk from the target to all of its neighbours
-    if (!_use_hl) {
+    if (!use_hl) {
         for (const auto& transfer: _timetable->stops[target_id].backward_transfers) {
             latest_departure_time[transfer.dest_id] = arrival_time - transfer.time;
         }
@@ -201,7 +202,7 @@ Time ConnectionScan::backward_query(const node_id_t& source_id, const node_id_t&
         const Stop& arrival_stop = _timetable->stops[conn.arrival_stop_id];
         const Stop& departure_stop = _timetable->stops[conn.departure_stop_id];
 
-        if (_use_hl) {
+        if (use_hl) {
             // Update the latest departure time of the arrival stop of the connection
             // using its out-hubs
             for (const auto& hub_pair: _timetable->stops[conn.arrival_stop_id].in_hubs) {
@@ -228,7 +229,7 @@ Time ConnectionScan::backward_query(const node_id_t& source_id, const node_id_t&
             if (conn.departure_time > latest_departure_time[conn.departure_stop_id]) {
                 latest_departure_time[conn.departure_stop_id] = conn.departure_time;
 
-                if (!_use_hl) {
+                if (!use_hl) {
                     // Update the latest departure time of the in-neighbours of the departure stop
                     for (const auto& transfer: departure_stop.backward_transfers) {
                         // Compute the departure time at the source of the transfer

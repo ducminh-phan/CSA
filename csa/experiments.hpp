@@ -46,8 +46,7 @@ private:
     Queries read_queries();
 
 public:
-    Experiment(const std::string& name, bool use_hl) :
-            _timetable {name, use_hl}, _queries {read_queries()} {
+    Experiment() : _timetable {}, _queries {read_queries()} {
         _timetable.summary();
     }
 

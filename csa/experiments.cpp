@@ -1,12 +1,13 @@
 #include <iomanip>
 #include <fstream>
 
+#include "config.hpp"
 #include "experiments.hpp"
 #include "csa.hpp"
 #include "csv_reader.hpp"
 
 
-void write_results(const Results& results, const std::string& name, bool use_hl) {
+void write_results(const Results& results) {
     std::string algo_str = use_hl ? "HLCSA" : "CSA";
 
     std::ofstream running_time_file {"../" + name + '_' + algo_str + "_running_time.csv"};
@@ -27,7 +28,8 @@ void write_results(const Results& results, const std::string& name, bool use_hl)
 
 Queries Experiment::read_queries() {
     Queries queries;
-    auto queries_file = read_dataset_file<std::ifstream>(_timetable.path + "queries.csv");
+    std::string rank_str = ranked ? "rank_" : "";
+    auto queries_file = read_dataset_file<std::ifstream>(_timetable.path + rank_str + "queries.csv");
 
     for (CSVIterator<uint32_t> iter {queries_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto r = static_cast<uint16_t>((*iter)[0]);
@@ -44,7 +46,7 @@ Queries Experiment::read_queries() {
 
 void Experiment::run() const {
     Results res;
-    ConnectionScan csa {&_timetable, _timetable.use_hl};
+    ConnectionScan csa {&_timetable};
 
     res.resize(_queries.size());
     for (size_t i = 0; i < _queries.size(); ++i) {
@@ -61,7 +63,7 @@ void Experiment::run() const {
         std::cout << i << std::endl;
     }
 
-    write_results(res, _timetable.name, _timetable.use_hl);
+    write_results(res);
 
     Profiler::report();
 }

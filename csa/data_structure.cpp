@@ -2,6 +2,7 @@
 #include <cmath>
 #include <unordered_map>
 
+#include "config.hpp"
 #include "data_structure.hpp"
 #include "csv_reader.hpp"
 #include "gzstream.h"

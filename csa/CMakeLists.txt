@@ -1,8 +1,10 @@
 add_library(csa_lib
+        config.hpp
         data_structure.cpp data_structure.hpp
         csa.cpp csa.hpp)
 add_executable(csa
         main.cpp
+        config.hpp
         experiments.cpp experiments.hpp)
 
 target_link_libraries(csa csa_lib)

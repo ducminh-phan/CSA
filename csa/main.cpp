@@ -1,16 +1,21 @@
 #include <iostream>
 
+#include "config.hpp"
 #include "clara.hpp"
 #include "data_structure.hpp"
 #include "experiments.hpp"
 
+std::string name;
+bool use_hl;
+bool profile;
+bool ranked;
 
 int main(int argc, char* argv[]) {
-    std::string name;
-    bool use_hl = false;
-    bool show_help = false;
+    bool show_help;
     auto cli_parser = clara::Arg(name, "name")("The name of the dataset to be used in the algorithm") |
                       clara::Opt(use_hl)["--hl"]("Unrestricted walking with hub labelling") |
+                      clara::Opt(profile)["-p"]["--profile"]("Run profile query") |
+                      clara::Opt(ranked)["-r"]["--ranked"]("Used ranked queries") |
                       clara::Help(show_help);
 
     auto result = cli_parser.parse(clara::Args(argc, argv));
@@ -24,7 +29,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    Experiment exp {name, use_hl};
+    Experiment exp;
     exp.run();
 
     return 0;
