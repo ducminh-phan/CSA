@@ -14,7 +14,6 @@
 using node_id_t = uint32_t;
 using trip_id_t = int32_t;
 using distance_t = uint32_t;
-const node_id_t MAX_NODES = 1000000;
 
 
 class Time {
@@ -157,6 +156,8 @@ public:
     std::vector<Stop> stops;
     std::vector<hubs_t> inverse_in_hubs;
     std::vector<hubs_t> inverse_out_hubs;
+    std::size_t max_node_id = 0;
+    std::size_t max_trip_id = 0;
 
     Timetable() {
         path = "../Public-Transit-Data/" + name + "/";

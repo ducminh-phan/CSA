@@ -5,16 +5,13 @@
 #include "csa.hpp"
 
 
-const trip_id_t MAX_TRIPS = 1000000;
-
-
 Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_id,
                            const Time& departure_time) const {
     std::vector<Time> earliest_arrival_time;
     std::vector<bool> is_reached;
 
-    earliest_arrival_time.resize(MAX_NODES);
-    is_reached.resize(MAX_TRIPS);
+    earliest_arrival_time.resize(_timetable->max_node_id + 1);
+    is_reached.resize(_timetable->max_trip_id + 1);
 
     // Walk from the source to all of its neighbours
     if (!use_hl) {
@@ -148,8 +145,8 @@ Time ConnectionScan::backward_query(const node_id_t& source_id, const node_id_t&
     std::vector<Time> latest_departure_time;
     std::vector<bool> is_reached;
 
-    latest_departure_time.assign(MAX_NODES, NEG_INF_TIME);
-    is_reached.resize(MAX_TRIPS);
+    latest_departure_time.assign(_timetable->max_node_id + 1, NEG_INF_TIME);
+    is_reached.resize(_timetable->max_trip_id + 1);
 
     // Walk from the target to all of its neighbours
     if (!use_hl) {

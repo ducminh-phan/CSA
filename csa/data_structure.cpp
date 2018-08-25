@@ -39,6 +39,8 @@ void Timetable::parse_stops() {
             stops.emplace_back(static_cast<node_id_t>(stops.size()));
         }
     }
+
+    max_node_id = stops.back().id;
 }
 
 
@@ -52,6 +54,9 @@ void Timetable::parse_transfers() {
 
         stops[from].transfers.emplace_back(to, time);
         stops[to].backward_transfers.emplace_back(from, time);
+
+        max_node_id = std::max(max_node_id, static_cast<std::size_t>(from));
+        max_node_id = std::max(max_node_id, static_cast<std::size_t>(to));
     }
 
     for (auto& stop: stops) {
@@ -63,9 +68,7 @@ void Timetable::parse_transfers() {
 
 void Timetable::parse_hubs() {
     auto in_hub_file = read_dataset_file<igzstream>(path + "in_hubs.gr.gz");
-
-    inverse_in_hubs.resize(MAX_NODES);
-    inverse_out_hubs.resize(MAX_NODES);
+    inverse_out_hubs.resize(max_node_id + 1);
 
     for (CSVIterator<uint32_t> iter {in_hub_file.get(), false, ' '}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto node_id = static_cast<node_id_t>((*iter)[0]);
@@ -73,17 +76,28 @@ void Timetable::parse_hubs() {
         auto distance = static_cast<distance_t>((*iter)[2]);
         auto time = distance_to_time(distance);
 
+        if (node_id > max_node_id) {
+            max_node_id = node_id;
+            inverse_in_hubs.resize(max_node_id + 1);
+        }
+
         stops[stop_id].in_hubs.emplace_back(time, node_id);
         inverse_in_hubs[node_id].emplace_back(time, stop_id);
     }
 
     auto out_hub_file = read_dataset_file<igzstream>(path + "out_hubs.gr.gz");
+    inverse_out_hubs.resize(max_node_id + 1);
 
     for (CSVIterator<uint32_t> iter {out_hub_file.get(), false, ' '}; iter != CSVIterator<uint32_t>(); ++iter) {
         auto stop_id = static_cast<node_id_t>((*iter)[0]);
         auto node_id = static_cast<node_id_t>((*iter)[1]);
         auto distance = static_cast<distance_t>((*iter)[2]);
         auto time = distance_to_time(distance);
+
+        if (node_id > max_node_id) {
+            max_node_id = node_id;
+            inverse_out_hubs.resize(max_node_id + 1);
+        }
 
         stops[stop_id].out_hubs.emplace_back(time, node_id);
         inverse_out_hubs[node_id].emplace_back(time, stop_id);
@@ -108,6 +122,8 @@ void Timetable::parse_connections() {
         auto stop_id = static_cast<node_id_t>((*iter)[3]);
 
         trip_events[trip_id].emplace_back(stop_id, arr, dep);
+
+        max_trip_id = std::max(max_trip_id, static_cast<std::size_t>(trip_id));
     }
 
     for (const auto& kv: trip_events) {
@@ -135,13 +151,22 @@ void Timetable::summary() const {
     std::cout << "Name: " << name << std::endl;
 
     int count_transfers = 0;
+    int count_hubs = 0;
     for (const auto& stop: stops) {
         count_transfers += stop.transfers.size();
+        count_hubs += stop.in_hubs.size();
+        count_hubs += stop.out_hubs.size();
     }
 
     std::cout << stops.size() << " stops" << std::endl;
 
-    std::cout << count_transfers << " transfers" << std::endl;
+    if (use_hl) {
+        std::cout.setf(std::ios::fixed, std::ios::floatfield);
+        std::cout.precision(3);
+        std::cout << count_hubs / static_cast<double>(stops.size()) << " hubs in average" << std::endl;
+    } else {
+        std::cout << count_transfers << " transfers" << std::endl;
+    }
 
     std::cout << connections.size() << " connections" << std::endl;
 
