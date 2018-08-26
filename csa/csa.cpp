@@ -74,7 +74,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
             break;
         }
 
-        if (use_hl) {
+        if (!is_reached[conn.trip_id] && use_hl) {
             // Update the earliest arrival time of the departure stop of the connection
             // using its in-hubs
             for (const auto& hub_pair: _timetable->stops[conn.departure_stop_id].in_hubs) {
