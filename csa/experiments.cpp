@@ -51,6 +51,7 @@ void Experiment::run() const {
     res.resize(_queries.size());
     for (size_t i = 0; i < _queries.size(); ++i) {
         auto query = _queries[i];
+        csa.init();
 
         Timer timer;
 
@@ -59,6 +60,7 @@ void Experiment::run() const {
         double running_time = timer.elapsed();
 
         res[i] = {query.rank, running_time, arrival_time};
+        csa.clear();
 
         std::cout << i << std::endl;
     }

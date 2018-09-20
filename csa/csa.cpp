@@ -3,31 +3,16 @@
 
 #include "config.hpp"
 #include "csa.hpp"
-#include "bag.hpp"
 
 
 Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_id,
-                           const Time& departure_time) const {
-    #ifdef PROFILE
-    auto p1 = new Profiler("Init");
-    #endif
-
-    // We consider three criteria: the arrival time at the target, the number of transfers,
-    // and the total walking time
-    std::vector<ParetoSet> bags;
-    std::vector<Time> earliest_arrival_time;
-    std::vector<bool> is_reached;
+                           const Time& departure_time) {
     Element tmp_elem;
     Time tmp_time;
-
-    bags.resize(_timetable->max_node_id + 1);
-    earliest_arrival_time.resize(_timetable->max_node_id + 1);
-    is_reached.resize(_timetable->max_trip_id + 1);
 
     bags[source_id].emplace(departure_time, 0, Time(0));
 
     #ifdef PROFILE
-    delete p1;
     Profiler prof {__func__};
     #endif
 
@@ -342,4 +327,18 @@ Time ConnectionScan::backward_query(const node_id_t& source_id, const node_id_t&
     }
 
     return latest_departure_time[source_id];
+}
+
+
+void ConnectionScan::init() {
+    bags.resize(_timetable->max_node_id + 1);
+    earliest_arrival_time.resize(_timetable->max_node_id + 1);
+    is_reached.resize(_timetable->max_trip_id + 1);
+}
+
+
+void ConnectionScan::clear() {
+    bags.clear();
+    earliest_arrival_time.clear();
+    is_reached.clear();
 }
