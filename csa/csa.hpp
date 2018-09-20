@@ -13,6 +13,10 @@ private:
     std::vector<Time> earliest_arrival_time;
     std::vector<bool> is_reached;
 
+    void update_departure_stop(const node_id_t& dep_id);
+
+    void update_out_hubs(const node_id_t& arr_id, const Time& arrival_time);
+
 public:
     explicit ConnectionScan(const Timetable* timetable_p) : _timetable {timetable_p} {};
 
