@@ -68,6 +68,15 @@ typename std::enable_if<n < sizeof...(T), bool>::type any_strictly_less(const st
     return crit_comp || any_strictly_less<n + 1>(t1, t2);
 }
 
+namespace internal {
+    template<std::size_t n, class... T>
+    typename std::enable_if<n < sizeof...(T), void>::type increment(
+            std::tuple<T...>& tup,
+            const typename std::tuple_element<n, std::tuple<T...>>::type& val) {
+        std::get<n>(tup) += val;
+    }
+}
+
 // TODO: explain all the template hacks
 template<class... T>
 class Element {
@@ -75,6 +84,8 @@ private:
     std::tuple<T...> _data;
 
 public:
+    explicit Element() = default;
+
     explicit Element(const T& ... crits) : _data {crits...} {};
 
     bool dominates(const Element& other) const {
@@ -97,18 +108,42 @@ public:
     friend bool operator<(const Element& e1, const Element& e2) {
         return e1._data < e2._data;
     }
+
+    friend Element operator+(const Element& e1, const Element& e2) {
+        Element retval;
+        retval._data = e1._data + e2._data;
+
+        return retval;
+    }
+
+    template<std::size_t n>
+    void increment(const typename std::tuple_element<n, std::tuple<T...>>::type& val) {
+        internal::increment<n>(this->_data, val);
+    }
+
+    template<std::size_t n>
+    typename std::tuple_element<n, std::tuple<T...>>::type& get() {
+        return std::get<n>(_data);
+    }
 };
 
 
 template<class... T>
 class ParetoSet {
-private:
+public:
     using element_t = Element<T...>;
+
+private:
     using container_t = std::vector<element_t>;
 
     container_t _container;
 
 public:
+    ParetoSet() {
+        // Reserve a number of elements to avoid extra allocation
+        _container.reserve(256);
+    }
+
     typename container_t::iterator begin() {
         return _container.begin();
     }

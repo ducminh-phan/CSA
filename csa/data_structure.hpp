@@ -48,6 +48,16 @@ public:
         return Time(t1._val - t2._val);
     }
 
+    Time& operator+=(const Time& rhs) {
+        if (this->_val == inf || rhs._val == inf) {
+            this->_val = inf;
+        } else {
+            this->_val += rhs._val;
+        }
+
+        return *this;
+    }
+
     friend bool operator<(const Time& t1, const Time& t2) { return t1._val < t2._val; }
 
     friend bool operator>(const Time& t1, const Time& t2) { return t1._val > t2._val; }

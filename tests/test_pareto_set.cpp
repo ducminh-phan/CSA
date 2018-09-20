@@ -189,3 +189,40 @@ TEST_CASE("Check if two Pareto sets are merged correctly") {
         }
     }
 }
+
+TEST_CASE("Test increment of each component of an Element") {
+    Pair p {1, 3};
+
+    p.increment<0>(1);
+    REQUIRE(p == Pair(2, 3));
+
+    p.increment<1>(2);
+    REQUIRE(p == Pair(2, 5));
+
+    Triple t {1, 3, 5};
+
+    t.increment<0>(2);
+    REQUIRE(t == Triple(3, 3, 5));
+
+    t.increment<1>(4);
+    REQUIRE(t == Triple(3, 7, 5));
+
+    t.increment<2>(6);
+    REQUIRE(t == Triple(3, 7, 11));
+}
+
+TEST_CASE("Test change each component of an Element") {
+    Triple t {1, 2, 3};
+
+    REQUIRE(t.get<0>() == 1);
+    t.get<0>() = 5;
+    REQUIRE(t == Triple(5, 2, 3));
+
+    REQUIRE(t.get<1>() == 2);
+    t.get<1>() = 5;
+    REQUIRE(t == Triple(5, 5, 3));
+
+    REQUIRE(t.get<2>() == 3);
+    t.get<2>() = 5;
+    REQUIRE(t == Triple(5, 5, 5));
+}

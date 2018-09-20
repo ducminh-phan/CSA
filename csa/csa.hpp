@@ -16,8 +16,6 @@ public:
 
     Time backward_query(const node_id_t& source_id, const node_id_t& target_id,
                         const Time& arrival_time) const;
-
-    std::vector<std::pair<Time, Time>> profile_query(const node_id_t& source_id, const node_id_t& target_id) const;
 };
 
 #endif // CSA_HPP
