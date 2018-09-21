@@ -10,35 +10,35 @@
 
 struct Element {
     Time arrival_time;
-    std::size_t no_transfers = 0;
+    std::size_t num_transfers = 0;
     Time walking_time;
 
     explicit Element() = default;
 
     Element(const Time& a, const std::size_t& t, const Time& w) :
-            arrival_time {a}, no_transfers {t}, walking_time {w} {}
+            arrival_time {a}, num_transfers {t}, walking_time {w} {}
 
     friend bool operator==(const Element& e1, const Element& e2) {
-        return e1.arrival_time == e2.arrival_time && e1.no_transfers == e2.no_transfers &&
+        return e1.arrival_time == e2.arrival_time && e1.num_transfers == e2.num_transfers &&
                e1.walking_time == e2.walking_time;
     }
 
     friend bool operator<(const Element& e1, const Element& e2) {
         return (e1.arrival_time < e2.arrival_time) ||
-               (e1.arrival_time == e2.arrival_time && e1.no_transfers < e2.no_transfers) ||
-               (e1.arrival_time == e2.arrival_time && e1.no_transfers == e2.no_transfers &&
+               (e1.arrival_time == e2.arrival_time && e1.num_transfers < e2.num_transfers) ||
+               (e1.arrival_time == e2.arrival_time && e1.num_transfers == e2.num_transfers &&
                 e1.walking_time < e2.walking_time);
     }
 
     friend Element operator+(const Element& e1, const Element& e2) {
-        return {e1.arrival_time + e2.arrival_time, e1.no_transfers + e2.no_transfers,
+        return {e1.arrival_time + e2.arrival_time, e1.num_transfers + e2.num_transfers,
                 e1.walking_time + e2.walking_time};
     }
 
     bool dominates(const Element& other) const {
-        return arrival_time <= other.arrival_time && no_transfers <= other.no_transfers &&
+        return arrival_time <= other.arrival_time && num_transfers <= other.num_transfers &&
                walking_time <= other.walking_time &&
-               (arrival_time < other.arrival_time || no_transfers < other.no_transfers ||
+               (arrival_time < other.arrival_time || num_transfers < other.num_transfers ||
                 walking_time < other.walking_time);
     }
 };

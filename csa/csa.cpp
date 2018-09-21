@@ -343,7 +343,7 @@ void ConnectionScan::update_out_hubs(const node_id_t& arr_id, const Time& arriva
                 tmp_elem = elem;
 
                 tmp_elem.arrival_time += walking_time;
-                tmp_elem.no_transfers += 1;
+                tmp_elem.num_transfers += 1;
                 tmp_elem.walking_time += walking_time;
 
                 bags[hub_id].insert(tmp_elem);
