@@ -79,8 +79,8 @@ public:
 
         // Add the element to the Pareto set only if the current set does not already contain it,
         // and it is not dominated by any of the current element
-        if (std::find(_container.begin(), _container.end(), elem) == _container.end() &&
-            std::none_of(_container.begin(), _container.end(), [&](const Element& e) { return e.dominates(elem); })) {
+        if (std::none_of(_container.begin(), _container.end(),
+                         [&](const Element& e) { return e.dominates(elem) || e == elem; })) {
             // If the new point can be inserted to the Pareto set, we need to remove all the elements
             // that are dominated by the newly inserted point
             _container.erase(
