@@ -21,7 +21,6 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
         for (const auto& transfer: _timetable->stops[source_id].transfers) {
             Time arrival_time = departure_time + transfer.time;
 
-            bags[transfer.dest_id].emplace(arrival_time, 0, transfer.time);
             earliest_arrival_time[transfer.dest_id] = arrival_time;
         }
     } else {
@@ -83,14 +82,16 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
             if (conn.arrival_time < earliest_arrival_time[arr_id]) {
                 earliest_arrival_time[arr_id] = conn.arrival_time;
 
-                for (const auto& elem: bags[dep_id]) {
-                    tmp_elem = elem;
+                if (use_hl) {
+                    for (const auto& elem: bags[dep_id]) {
+                        tmp_elem = elem;
 
-                    if (tmp_elem.arrival_time >= conn.arrival_time) {
-                        tmp_elem.arrival_time = conn.arrival_time;
+                        if (tmp_elem.arrival_time >= conn.arrival_time) {
+                            tmp_elem.arrival_time = conn.arrival_time;
+                        }
+
+                        bags[arr_id].insert(tmp_elem);
                     }
-
-                    bags[arr_id].insert(tmp_elem);
                 }
 
                 update_out_hubs(arr_id, conn.arrival_time);
@@ -320,16 +321,6 @@ void ConnectionScan::update_out_hubs(const node_id_t& arr_id, const Time& arriva
 
             if (tmp_time < earliest_arrival_time[transfer.dest_id]) {
                 earliest_arrival_time[transfer.dest_id] = tmp_time;
-            }
-
-            for (const auto& elem: bags[arr_id]) {
-                tmp_elem = elem;
-
-                tmp_elem.arrival_time += transfer_time;
-                tmp_elem.no_transfers += 1;
-                tmp_elem.walking_time += transfer_time;
-
-                bags[transfer.dest_id].insert(tmp_elem);
             }
         }
     } else {
