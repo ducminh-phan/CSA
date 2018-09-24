@@ -5,8 +5,8 @@
 #include "csa.hpp"
 
 
-Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_id,
-                           const Time& departure_time) {
+std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_id,
+                                              const Time& departure_time) {
     Element tmp_elem;
     Time tmp_time;
 
@@ -121,7 +121,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
         }
     }
 
-    return earliest_arrival_time[target_id];
+    return {earliest_arrival_time[target_id], bags[target_id].size()};
 }
 
 

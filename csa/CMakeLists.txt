@@ -3,7 +3,7 @@ add_library(csa_lib
         data_structure.cpp data_structure.hpp
         csa.cpp csa.hpp
         pareto_set.hpp
-        bag.hpp)
+        bag.cpp bag.hpp)
 add_executable(csa
         main.cpp
         config.hpp

@@ -49,6 +49,7 @@ private:
     using container_t = std::vector<Element>;
 
     container_t _container;
+    static std::size_t _max_size;
 
 public:
     ParetoSet() {
@@ -94,6 +95,8 @@ public:
             // Add the element to the internal container
             _container.push_back(elem);
         }
+
+        _max_size = std::max(_max_size, _container.size());
     }
 
     void emplace(const Time& a, const std::size_t& t, const Time& w) {
@@ -122,6 +125,10 @@ public:
 
     std::size_t size() const {
         return _container.size();
+    }
+
+    static std::size_t get_max_size() {
+        return _max_size;
     }
 };
 
