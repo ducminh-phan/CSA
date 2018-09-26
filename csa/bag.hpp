@@ -73,10 +73,12 @@ public:
         return _container.end();
     }
 
-    void insert(const Element& elem) { // https://stackoverflow.com/a/36282956
+    bool insert(Element& elem) { // https://stackoverflow.com/a/36282956
         #ifdef PROFILE
         Profiler prof {__func__};
         #endif
+
+        bool inserted = false;
 
         // Add the element to the Pareto set only if the current set does not already contain it,
         // and it is not dominated by any of the current element
@@ -94,9 +96,11 @@ public:
 
             // Add the element to the internal container
             _container.push_back(elem);
+            inserted = true;
         }
 
         _max_size = std::max(_max_size, _container.size());
+        return inserted;
     }
 
     void emplace(const Time& a, const std::size_t& t, const Time& w) {

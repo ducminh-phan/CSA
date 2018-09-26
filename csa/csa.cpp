@@ -59,6 +59,8 @@ std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const 
     auto first_conn_iter = std::lower_bound(_timetable->connections.begin(), _timetable->connections.end(),
                                             dummy_conn);
 
+    int connection_count = 0;
+    int inserted_count = 0;
     for (auto iter = first_conn_iter; iter != _timetable->connections.end(); ++iter) {
         #ifdef PROFILE
         Profiler loop {"Loop"};
@@ -67,6 +69,7 @@ std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const 
         const Connection& conn = *iter;
         const auto& arr_id = conn.arrival_stop_id;
         const auto& dep_id = conn.departure_stop_id;
+        bool inserted = false;
 
         if (!is_reached[conn.trip_id] && use_hl) {
             update_departure_stop(dep_id);
@@ -81,22 +84,29 @@ std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const 
             // Check if the arrival time to the arrival stop of the connection can be improved
             if (conn.arrival_time < earliest_arrival_time[arr_id]) {
                 earliest_arrival_time[arr_id] = conn.arrival_time;
+            }
 
-                if (use_hl) {
-                    for (const auto& elem: bags[dep_id]) {
-                        tmp_elem = elem;
+            if (use_hl) {
+                for (const auto& elem: bags[dep_id]) {
+                    tmp_elem = elem;
 
-                        if (tmp_elem.arrival_time >= conn.arrival_time) {
-                            tmp_elem.arrival_time = conn.arrival_time;
-                        }
-
-                        bags[arr_id].insert(tmp_elem);
+                    if (tmp_elem.arrival_time > conn.departure_time) {
+                        continue;
                     }
-                }
 
+                    tmp_elem.arrival_time = conn.arrival_time;
+
+                    inserted |= bags[arr_id].insert(tmp_elem);
+                }
+            }
+
+            if (inserted) {
                 update_out_hubs(arr_id, conn.arrival_time);
+                ++inserted_count;
             }
         }
+
+        ++connection_count;
     }
 
     if (use_hl) {
@@ -120,6 +130,10 @@ std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const 
             }
         }
     }
+
+    std::cout << "Arrival stops updated  " << inserted_count << " times\n";
+    std::cout << "Number of connections: " << connection_count << '\n';
+    std::cout << "Ratio: " << double(inserted_count) / connection_count << '\n';
 
     return {earliest_arrival_time[target_id], bags[target_id].size()};
 }
