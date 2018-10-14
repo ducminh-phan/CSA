@@ -79,9 +79,10 @@ struct StopTimeEvent {
     node_id_t stop_id;
     Time arrival_time;
     Time departure_time;
+    int stop_sequence;
 
-    StopTimeEvent(node_id_t sid, Time::value_type at, Time::value_type dt) :
-            stop_id {sid}, arrival_time {at}, departure_time {dt} {};
+    StopTimeEvent(node_id_t sid, Time::value_type at, Time::value_type dt, int seq) :
+            stop_id {sid}, arrival_time {at}, departure_time {dt}, stop_sequence {seq} {};
 };
 
 using Events = std::vector<StopTimeEvent>;
@@ -115,25 +116,26 @@ struct Stop {
 
 class Connection {
 private:
-    std::tuple<Time, Time, node_id_t, node_id_t, trip_id_t> _tuple() const {
-        return {departure_time, arrival_time, departure_stop_id, arrival_stop_id, trip_id};
-    }
+    std::tuple<Time, Time, trip_id_t, int> _tuple;
 
 public:
     trip_id_t trip_id;
     node_id_t departure_stop_id, arrival_stop_id;
     Time departure_time, arrival_time;
+    int stop_sequence;
 
-    Connection(trip_id_t tid, node_id_t dsid, node_id_t asid, Time dt, Time at) :
+    Connection(trip_id_t tid, node_id_t dsid, node_id_t asid, Time dt, Time at, int seq) :
             trip_id {tid}, departure_stop_id {dsid}, arrival_stop_id {asid},
-            departure_time {dt}, arrival_time {at} {};
+            departure_time {dt}, arrival_time {at}, stop_sequence {seq} {
+        _tuple = {departure_time, arrival_time, trip_id, stop_sequence};
+    };
 
     friend bool operator<(const Connection& conn1, const Connection& conn2) {
-        return conn1._tuple() < conn2._tuple();
+        return conn1._tuple < conn2._tuple;
     }
 
     friend bool operator==(const Connection& conn1, const Connection& conn2) {
-        return conn1._tuple() == conn2._tuple();
+        return conn1._tuple == conn2._tuple;
     }
 };
 

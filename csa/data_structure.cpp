@@ -121,17 +121,19 @@ void Timetable::parse_hubs() {
 
 void Timetable::parse_connections() {
     igzstream stop_times_file_stream {(path + "stop_times.csv.gz").c_str()};
-    io::CSVReader<4> stop_times_reader {"stop_times.csv", stop_times_file_stream};
-    stop_times_reader.read_header(io::ignore_extra_column, "trip_id", "arrival_time", "departure_time", "stop_id");
+    io::CSVReader<5> stop_times_reader {"stop_times.csv", stop_times_file_stream};
+    stop_times_reader.read_header(io::ignore_no_column, "trip_id", "arrival_time", "departure_time", "stop_id",
+                                  "stop_sequence");
 
     trip_id_t trip_id;
     Time::value_type arr, dep;
     node_id_t stop_id;
+    int stop_sequence;
 
     std::unordered_map<trip_id_t, Events> trip_events;
 
-    while (stop_times_reader.read_row(trip_id, arr, dep, stop_id)) {
-        trip_events[trip_id].emplace_back(stop_id, arr, dep);
+    while (stop_times_reader.read_row(trip_id, arr, dep, stop_id, stop_sequence)) {
+        trip_events[trip_id].emplace_back(stop_id, arr, dep, stop_sequence);
 
         max_trip_id = std::max(max_trip_id, static_cast<std::size_t>(trip_id));
     }
@@ -147,7 +149,9 @@ void Timetable::parse_connections() {
             Time departure_time = events[i].departure_time;
             Time arrival_time = events[i + 1].arrival_time;
 
-            connections.emplace_back(trip_id, departure_stop_id, arrival_stop_id, departure_time, arrival_time);
+            int seq = events[i].stop_sequence;
+
+            connections.emplace_back(trip_id, departure_stop_id, arrival_stop_id, departure_time, arrival_time, seq);
         }
     }
 

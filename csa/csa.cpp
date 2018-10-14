@@ -45,9 +45,9 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
     // to get the const_iterator pointing to the first connection in the set of connections
     // which is equivalent or goes after this dummy connection. Since the connections are ordered
     // lexicographically, with the order of attribute:
-    // departure_time -> arrival_time -> departure_stop_id -> arrival_stop_id -> trip_id,
+    // departure_time -> arrival_time -> trip_id -> the order of the connection in the trip,
     // the const_iterator obtained will point to the connection we need to find
-    Connection dummy_conn {0, 0, 0, departure_time, departure_time};
+    Connection dummy_conn {0, 0, 0, departure_time, departure_time, 0};
     const auto& first_conn_iter = std::lower_bound(_timetable->connections.begin(), _timetable->connections.end(),
                                                    dummy_conn);
 
@@ -146,7 +146,7 @@ Time ConnectionScan::backward_query(const node_id_t& source_id, const node_id_t&
     // the const_iterator obtained will point to the first connection whose departure time >=
     // the given arrival_time, which is usually a few iterators behind the optimal iterator,
     // but we wouldn't mind this tiny difference
-    Connection dummy_conn {0, 0, 0, arrival_time, arrival_time};
+    Connection dummy_conn {0, 0, 0, arrival_time, arrival_time, 0};
     auto first_conn_iter = std::lower_bound(_timetable->connections.begin(), _timetable->connections.end(),
                                             dummy_conn);
 
