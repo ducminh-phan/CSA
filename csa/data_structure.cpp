@@ -4,7 +4,7 @@
 
 #include "config.hpp"
 #include "data_structure.hpp"
-#include "csv_reader.hpp"
+#include "csv.h"
 #include "gzstream.h"
 
 
@@ -29,10 +29,13 @@ void Timetable::parse_data() {
 
 
 void Timetable::parse_stops() {
-    auto stop_routes_file = read_dataset_file<igzstream>(path + "stop_routes.csv.gz");
+    igzstream stop_routes_file_stream {(path + "stop_routes.csv.gz").c_str()};
+    io::CSVReader<1> stop_routes_reader {"stop_routes.csv", stop_routes_file_stream};
+    stop_routes_reader.read_header(io::ignore_extra_column, "stop_id");
 
-    for (CSVIterator<uint32_t> iter {stop_routes_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
-        auto stop_id = static_cast<node_id_t>((*iter)[0]);
+    node_id_t stop_id;
+
+    while (stop_routes_reader.read_row(stop_id)) {
 
         // Add a new stop if we encounter a new id, note that we might have a missing id.
         while (stops.size() <= stop_id) {
@@ -45,13 +48,15 @@ void Timetable::parse_stops() {
 
 
 void Timetable::parse_transfers() {
-    auto transfers_file = read_dataset_file<igzstream>(path + "transfers.csv.gz");
+    igzstream transfers_file_stream {(path + "transfers.csv.gz").c_str()};
+    io::CSVReader<3> transfers_reader {"transfers.csv", transfers_file_stream};
+    transfers_reader.read_header(io::ignore_no_column, "from_stop_id", "to_stop_id", "min_transfer_time");
 
-    for (CSVIterator<uint32_t> iter {transfers_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
-        auto from = static_cast<node_id_t>((*iter)[0]);
-        auto to = static_cast<node_id_t>((*iter)[1]);
-        auto time = static_cast<Time::value_type>((*iter)[2]);
+    node_id_t from;
+    node_id_t to;
+    Time::value_type time;
 
+    while (transfers_reader.read_row(from, to, time)) {
         stops[from].transfers.emplace_back(to, time);
         stops[to].backward_transfers.emplace_back(from, time);
 
@@ -67,13 +72,17 @@ void Timetable::parse_transfers() {
 
 
 void Timetable::parse_hubs() {
-    auto in_hub_file = read_dataset_file<igzstream>(path + "in_hubs.gr.gz");
-    inverse_out_hubs.resize(max_node_id + 1);
+    inverse_in_hubs.resize(max_node_id + 1);
 
-    for (CSVIterator<uint32_t> iter {in_hub_file.get(), false, ' '}; iter != CSVIterator<uint32_t>(); ++iter) {
-        auto node_id = static_cast<node_id_t>((*iter)[0]);
-        auto stop_id = static_cast<node_id_t>((*iter)[1]);
-        auto distance = static_cast<distance_t>((*iter)[2]);
+    igzstream in_hubs_file_stream {(path + "in_hubs.gr.gz").c_str()};
+    io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<' '>> in_hubs_reader {"in_hubs.gr", in_hubs_file_stream};
+    in_hubs_reader.set_header("node_id", "stop_id", "distance");
+
+    node_id_t node_id;
+    node_id_t stop_id;
+    distance_t distance;
+
+    while (in_hubs_reader.read_row(node_id, stop_id, distance)) {
         auto time = distance_to_time(distance);
 
         if (node_id > max_node_id) {
@@ -85,13 +94,13 @@ void Timetable::parse_hubs() {
         inverse_in_hubs[node_id].emplace_back(time, stop_id);
     }
 
-    auto out_hub_file = read_dataset_file<igzstream>(path + "out_hubs.gr.gz");
     inverse_out_hubs.resize(max_node_id + 1);
 
-    for (CSVIterator<uint32_t> iter {out_hub_file.get(), false, ' '}; iter != CSVIterator<uint32_t>(); ++iter) {
-        auto stop_id = static_cast<node_id_t>((*iter)[0]);
-        auto node_id = static_cast<node_id_t>((*iter)[1]);
-        auto distance = static_cast<distance_t>((*iter)[2]);
+    igzstream out_hubs_file_stream {(path + "out_hubs.gr.gz").c_str()};
+    io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<' '>> out_hubs_reader {"out_hubs.gr", out_hubs_file_stream};
+    out_hubs_reader.set_header("stop_id", "node_id", "distance");
+
+    while (out_hubs_reader.read_row(stop_id, node_id, distance)) {
         auto time = distance_to_time(distance);
 
         if (node_id > max_node_id) {
@@ -111,23 +120,26 @@ void Timetable::parse_hubs() {
 
 
 void Timetable::parse_connections() {
-    auto stop_times_file = read_dataset_file<igzstream>(path + "stop_times.csv.gz");
+    igzstream stop_times_file_stream {(path + "stop_times.csv.gz").c_str()};
+    io::CSVReader<5> stop_times_reader {"stop_times.csv", stop_times_file_stream};
+    stop_times_reader.read_header(io::ignore_no_column, "trip_id", "arrival_time", "departure_time", "stop_id",
+                                  "stop_sequence");
+
+    trip_id_t trip_id;
+    Time::value_type arr, dep;
+    node_id_t stop_id;
+    int stop_sequence;
 
     std::unordered_map<trip_id_t, Events> trip_events;
 
-    for (CSVIterator<uint32_t> iter {stop_times_file.get()}; iter != CSVIterator<uint32_t>(); ++iter) {
-        auto trip_id = static_cast<trip_id_t>((*iter)[0]);
-        auto arr = static_cast<Time::value_type>((*iter)[1]);
-        auto dep = static_cast<Time::value_type>((*iter)[2]);
-        auto stop_id = static_cast<node_id_t>((*iter)[3]);
-
-        trip_events[trip_id].emplace_back(stop_id, arr, dep);
+    while (stop_times_reader.read_row(trip_id, arr, dep, stop_id, stop_sequence)) {
+        trip_events[trip_id].emplace_back(stop_id, arr, dep, stop_sequence);
 
         max_trip_id = std::max(max_trip_id, static_cast<std::size_t>(trip_id));
     }
 
     for (const auto& kv: trip_events) {
-        trip_id_t trip_id = kv.first;
+        trip_id = kv.first;
         Events events = kv.second;
 
         for (size_t i = 0; i < events.size() - 1; ++i) {
@@ -137,7 +149,9 @@ void Timetable::parse_connections() {
             Time departure_time = events[i].departure_time;
             Time arrival_time = events[i + 1].arrival_time;
 
-            connections.emplace_back(trip_id, departure_stop_id, arrival_stop_id, departure_time, arrival_time);
+            int seq = events[i].stop_sequence;
+
+            connections.emplace_back(trip_id, departure_stop_id, arrival_stop_id, departure_time, arrival_time, seq);
         }
     }
 

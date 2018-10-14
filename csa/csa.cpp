@@ -26,8 +26,8 @@ std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const 
     } else {
         // Propagate the departure time from the source stop to all its out-hubs
         for (const auto& hub_pair: _timetable->stops[source_id].out_hubs) {
-            auto& walking_time = hub_pair.first;
-            auto& hub_id = hub_pair.second;
+            const auto& walking_time = hub_pair.first;
+            const auto& hub_id = hub_pair.second;
 
             tmp_time = departure_time + walking_time;
             earliest_arrival_time[hub_id] = tmp_time;
@@ -35,8 +35,8 @@ std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const 
 
             // Then propagate from the out-hubs to its inverse in-hubs
             for (const auto& inverse_hub_pair: _timetable->inverse_in_hubs[hub_id]) {
-                auto& _walking_time = inverse_hub_pair.first;
-                auto& stop_id = inverse_hub_pair.second;
+                const auto& _walking_time = inverse_hub_pair.first;
+                const auto& stop_id = inverse_hub_pair.second;
 
                 bags[stop_id].emplace(tmp_time + _walking_time, 0, walking_time + _walking_time);
 
@@ -53,11 +53,11 @@ std::pair<Time, size_t> ConnectionScan::query(const node_id_t& source_id, const 
     // to get the const_iterator pointing to the first connection in the set of connections
     // which is equivalent or goes after this dummy connection. Since the connections are ordered
     // lexicographically, with the order of attribute:
-    // departure_time -> arrival_time -> departure_stop_id -> arrival_stop_id -> trip_id,
+    // departure_time -> arrival_time -> trip_id -> the order of the connection in the trip,
     // the const_iterator obtained will point to the connection we need to find
-    Connection dummy_conn {0, 0, 0, departure_time, departure_time};
-    auto first_conn_iter = std::lower_bound(_timetable->connections.begin(), _timetable->connections.end(),
-                                            dummy_conn);
+    Connection dummy_conn {0, 0, 0, departure_time, departure_time, 0};
+    const auto& first_conn_iter = std::lower_bound(_timetable->connections.begin(), _timetable->connections.end(),
+                                                   dummy_conn);
 
     int connection_count = 0;
     int inserted_count = 0;
@@ -183,7 +183,7 @@ Time ConnectionScan::backward_query(const node_id_t& source_id, const node_id_t&
     // the const_iterator obtained will point to the first connection whose departure time >=
     // the given arrival_time, which is usually a few iterators behind the optimal iterator,
     // but we wouldn't mind this tiny difference
-    Connection dummy_conn {0, 0, 0, arrival_time, arrival_time};
+    Connection dummy_conn {0, 0, 0, arrival_time, arrival_time, 0};
     auto first_conn_iter = std::lower_bound(_timetable->connections.begin(), _timetable->connections.end(),
                                             dummy_conn);
 
@@ -289,8 +289,8 @@ void ConnectionScan::update_departure_stop(const node_id_t& dep_id) {
     Time tmp_time;
 
     for (const auto& hub_pair: _timetable->stops[dep_id].in_hubs) {
-        auto& walking_time = hub_pair.first;
-        auto& hub_id = hub_pair.second;
+        const auto& walking_time = hub_pair.first;
+        const auto& hub_id = hub_pair.second;
 
         tmp_time = earliest_arrival_time[hub_id] + walking_time;
 
@@ -328,7 +328,7 @@ void ConnectionScan::update_out_hubs(const node_id_t& arr_id, const Time& arriva
     if (!use_hl) {
         // Update the earliest arrival time of the out-neighbours of the arrival stop
         for (const auto& transfer: arrival_stop.transfers) {
-            Time transfer_time = transfer.time;
+            const auto& transfer_time = transfer.time;
 
             // Compute the arrival time at the destination of the transfer
             tmp_time = arrival_time + transfer_time;
@@ -340,8 +340,8 @@ void ConnectionScan::update_out_hubs(const node_id_t& arr_id, const Time& arriva
     } else {
         // Update the earliest arrival time of the out-hubs of the arrival stop
         for (const auto& hub_pair: arrival_stop.out_hubs) {
-            auto& walking_time = hub_pair.first;
-            auto& hub_id = hub_pair.second;
+            const auto& walking_time = hub_pair.first;
+            const auto& hub_id = hub_pair.second;
 
             tmp_time = arrival_time + walking_time;
 

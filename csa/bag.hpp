@@ -108,13 +108,6 @@ public:
         insert(elem);
     };
 
-    void merge(const ParetoSet& other) {
-        // Merge another Pareto set by inserting its elements one-by-one
-        for (const auto& elem: other._container) {
-            this->insert(elem);
-        }
-    }
-
     friend bool operator==(const ParetoSet& set1, const ParetoSet& set2) {
         container_t c1, c2;
 
