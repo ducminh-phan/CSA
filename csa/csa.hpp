@@ -20,9 +20,6 @@ public:
 
     Time query(const node_id_t& source_id, const node_id_t& target_id, const Time& departure_time);
 
-    Time backward_query(const node_id_t& source_id, const node_id_t& target_id,
-                        const Time& arrival_time) const;
-
     void init();
 
     void clear();
