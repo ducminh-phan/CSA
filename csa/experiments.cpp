@@ -37,7 +37,7 @@ Queries Experiment::read_queries() {
 
     uint16_t r;
     node_id_t s, t;
-    Time::value_type d;
+    Time d;
 
     while (queries_file_reader.read_row(r, s, t, d)) {
         queries.emplace_back(r, s, t, d);

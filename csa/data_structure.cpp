@@ -54,7 +54,7 @@ void Timetable::parse_transfers() {
 
     node_id_t from;
     node_id_t to;
-    Time::value_type time;
+    Time time;
 
     while (transfers_reader.read_row(from, to, time)) {
         stops[from].transfers.emplace_back(to, time);
@@ -126,7 +126,7 @@ void Timetable::parse_connections() {
                                   "stop_sequence");
 
     trip_id_t trip_id;
-    Time::value_type arr, dep;
+    Time arr, dep;
     node_id_t stop_id;
     int stop_sequence;
 
@@ -191,5 +191,5 @@ void Timetable::summary() const {
 Time distance_to_time(const distance_t& d) {
     static const double v {4.0};  // km/h
 
-    return Time {static_cast<Time::value_type>(std::lround(9 * d / 25 / v))};
+    return Time {static_cast<Time>(std::lround(9 * d / 25 / v))};
 }

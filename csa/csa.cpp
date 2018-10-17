@@ -103,7 +103,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
 
 
 void ConnectionScan::init() {
-    earliest_arrival_time.resize(_timetable->max_node_id + 1);
+    earliest_arrival_time.assign(_timetable->max_node_id + 1, INF);
     is_reached.resize(_timetable->max_trip_id + 1);
 }
 
