@@ -1,7 +1,9 @@
 add_library(csa_lib
         config.hpp
         data_structure.cpp data_structure.hpp
-        csa.cpp csa.hpp)
+        csa.cpp csa.hpp
+        profile_pareto.hpp
+        )
 add_executable(csa
         main.cpp
         config.hpp

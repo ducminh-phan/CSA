@@ -50,6 +50,8 @@ Queries Experiment::read_queries() {
 void Experiment::run() const {
     Results res;
     ConnectionScan csa {&_timetable};
+    Time arrival_time {INF};
+    ProfilePareto prof;
 
     res.resize(_queries.size());
     for (size_t i = 0; i < _queries.size(); ++i) {
@@ -58,7 +60,11 @@ void Experiment::run() const {
 
         Timer timer;
 
-        Time arrival_time = csa.query(query.source_id, query.target_id, query.dep);
+        if (!profile) {
+            arrival_time = csa.query(query.source_id, query.target_id, Time(19645));
+        } else {
+            prof = csa.profile_query(query.source_id, query.target_id);
+        }
 
         double running_time = timer.elapsed();
 

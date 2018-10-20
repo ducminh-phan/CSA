@@ -6,7 +6,7 @@
 
 
 Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_id,
-                           const Time& departure_time) {
+                           const Time& departure_time, const bool& target_pruning) {
     Time tmp_time;
 
     #ifdef PROFILE
@@ -60,7 +60,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
         const auto& arr_id = conn.arrival_stop_id;
         const auto& dep_id = conn.departure_stop_id;
 
-        if (earliest_arrival_time[target_id] <= conn.departure_time) {
+        if (target_pruning && earliest_arrival_time[target_id] <= conn.departure_time) {
             // We need to check if earliest_arrival_time[target_id] can still be improved
             // before break out of the loop
             if (use_hl) {
@@ -105,12 +105,20 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
 void ConnectionScan::init() {
     earliest_arrival_time.assign(_timetable->max_node_id + 1, INF);
     is_reached.resize(_timetable->max_trip_id + 1);
+
+    stop_profile.resize(_timetable->max_node_id + 1);
+    trip_earliest_time.assign(_timetable->max_trip_id + 1, INF);
+    walking_time_to_target.assign(_timetable->max_trip_id + 1, INF);
 }
 
 
 void ConnectionScan::clear() {
     earliest_arrival_time.clear();
     is_reached.clear();
+
+    stop_profile.clear();
+    trip_earliest_time.clear();
+    walking_time_to_target.clear();
 }
 
 
@@ -180,4 +188,73 @@ void ConnectionScan::update_out_hubs(const node_id_t& arr_id, const Time& arriva
             }
         }
     }
+}
+
+
+ProfilePareto ConnectionScan::profile_query(const node_id_t& source_id,
+                                            const node_id_t& target_id) {
+    // Run a normal query with departure_time 0 and do not target-prune to scan all connections
+    query(source_id, target_id, 0, false);
+
+    // Handle final footpaths
+    for (const auto& transfer: _timetable->stops[target_id].backward_transfers) {
+        walking_time_to_target[transfer.dest_id] = transfer.time;
+    }
+
+    const auto& first = _timetable->connections.rbegin();
+    const auto& last = _timetable->connections.rend();
+
+    Time t1, t2, t3, t_conn;
+
+    // Iterate over the connection in the decreasing order by departure time
+    for (auto conn_iter = first; conn_iter != last; ++conn_iter) {
+        // Skip the connection if its trip was not reached during the normal query
+        if (!is_reached[conn_iter->trip_id]) {
+            continue;
+        }
+
+        // Arrival time when walking from the arrival stop to the target
+        t1 = conn_iter->arrival_time + walking_time_to_target[conn_iter->arrival_stop_id];
+
+        // Arrival time when remaining seated on the trip of the current connection
+        t2 = trip_earliest_time[conn_iter->trip_id];
+
+        // Arrival time when transferring to another route using the same stop. Since in the profile,
+        // both the departure time and arrival time are in decreasing order, we only need to find
+        // the last pair with departure time at least conn_iter->arrival_time
+        // TODO: compare the performance of linear search and binary search
+        ProfilePareto::pair_t p;
+        auto _first = stop_profile[conn_iter->arrival_stop_id].rbegin();
+        auto _last = stop_profile[conn_iter->arrival_stop_id].rend();
+        for (auto iter = _first; iter != _last; ++iter) {
+            // We are iterating in the reverse order, starting from the back of the profile vector,
+            // thus the first profile pair with departure time >= the arrival time of the connection
+            // will be the pair we need
+            if (iter->dep >= conn_iter->arrival_time) {
+                p = *iter;
+                break;
+            }
+        }
+
+        t3 = p.arr;
+
+        // Arrival time when starting with the current connection
+        t_conn = std::min({t1, t2, t3});
+
+        // Source domination
+        if (stop_profile[source_id].dominates(conn_iter->departure_time, t_conn)) {
+            continue;
+        }
+
+        // Handle transfers and initial footpaths
+        if (!stop_profile[conn_iter->arrival_stop_id].dominates(conn_iter->departure_time, t_conn)) {
+            for (const auto& transfer: _timetable->stops[conn_iter->departure_stop_id].backward_transfers) {
+                stop_profile[transfer.dest_id].emplace(conn_iter->departure_time - transfer.time, t_conn);
+            }
+        }
+
+        trip_earliest_time[conn_iter->trip_id] = t_conn;
+    }
+
+    return stop_profile[source_id];
 }
