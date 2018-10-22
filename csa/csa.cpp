@@ -241,13 +241,18 @@ ProfilePareto ConnectionScan::profile_query(const node_id_t& source_id,
         // Arrival time when starting with the current connection
         t_conn = std::min({t1, t2, t3});
 
+        ProfilePareto::pair_t conn_pair {conn_iter->departure_time, t_conn};
+
         // Source domination
-        if (stop_profile[source_id].dominates(conn_iter->departure_time, t_conn)) {
+        if (stop_profile[source_id].dominates(conn_pair)) {
             continue;
         }
 
         // Handle transfers and initial footpaths
-        if (!stop_profile[conn_iter->arrival_stop_id].dominates(conn_iter->departure_time, t_conn)) {
+        if (!stop_profile[conn_iter->departure_stop_id].dominates(conn_pair)) {
+            // We do not need to check if conn_pair is dominated again
+            stop_profile[conn_iter->departure_stop_id].emplace(conn_pair, false);
+
             for (const auto& transfer: _timetable->stops[conn_iter->departure_stop_id].backward_transfers) {
                 stop_profile[transfer.dest_id].emplace(conn_iter->departure_time - transfer.time, t_conn);
             }

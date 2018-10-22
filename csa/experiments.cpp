@@ -61,7 +61,7 @@ void Experiment::run() const {
         Timer timer;
 
         if (!profile) {
-            arrival_time = csa.query(query.source_id, query.target_id, Time(19645));
+            arrival_time = csa.query(query.source_id, query.target_id, query.dep);
         } else {
             prof = csa.profile_query(query.source_id, query.target_id);
         }
