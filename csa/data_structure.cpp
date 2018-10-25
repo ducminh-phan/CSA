@@ -1,11 +1,30 @@
 #include <algorithm>
 #include <cmath>
+#include <map>
 #include <unordered_map>
 
-#include "config.hpp"
 #include "data_structure.hpp"
 #include "csv.h"
 #include "gzstream.h"
+
+
+template<class T>
+using CountMap = std::map<T, size_t>;
+
+template<class T>
+std::pair<CountMap<T>, CountMap<T>> find_indices(CountMap<T> counts) {
+    CountMap<T> firsts;
+    CountMap<T> lasts;
+    size_t cumsum = 0;
+
+    for (const auto& elem: counts) {
+        firsts[elem.first] = cumsum;
+        cumsum += elem.second;
+        lasts[elem.first] = cumsum;
+    }
+
+    return std::make_pair(firsts, lasts);
+}
 
 
 void Timetable::parse_data() {
@@ -52,28 +71,59 @@ void Timetable::parse_transfers() {
     io::CSVReader<3> transfers_reader {"transfers.csv", transfers_file_stream};
     transfers_reader.read_header(io::ignore_no_column, "from_stop_id", "to_stop_id", "min_transfer_time");
 
-    node_id_t from;
-    node_id_t to;
+    node_id_t source_id;
+    node_id_t target_id;
     Time time;
 
-    while (transfers_reader.read_row(from, to, time)) {
-        stops[from].transfers.emplace_back(to, time);
-        stops[to].backward_transfers.emplace_back(from, time);
+    std::map<node_id_t, size_t> source_count;
+    std::map<node_id_t, size_t> target_count;
 
-        max_node_id = std::max(max_node_id, static_cast<std::size_t>(from));
-        max_node_id = std::max(max_node_id, static_cast<std::size_t>(to));
+    while (transfers_reader.read_row(source_id, target_id, time)) {
+        _transfers.emplace_back(source_id, target_id, time);
+
+        source_count[source_id] += 1;
+        target_count[target_id] += 1;
+
+        max_node_id = std::max(max_node_id, static_cast<std::size_t>(source_id));
+        max_node_id = std::max(max_node_id, static_cast<std::size_t>(target_id));
     }
 
+    _backward_transfers = _transfers;
+
+    // We need to sort by source_id first to collect transfers having the same source_id
+    std::sort(_transfers.begin(), _transfers.end(),
+              [](const Transfer& t1, const Transfer& t2) {
+                  return std::make_tuple(t1.source_id, t1.time, t1.target_id) <
+                         std::make_tuple(t2.source_id, t2.time, t2.target_id);
+              });
+
+    // Sort by target_id first to collect backward transfers having the same target_id
+    std::sort(_backward_transfers.begin(), _backward_transfers.end(),
+              [](const Transfer& t1, const Transfer& t2) {
+                  return std::make_tuple(t1.target_id, t1.time, t1.source_id) <
+                         std::make_tuple(t2.target_id, t2.time, t2.source_id);
+              });
+
+    // Compute the cumulative sum from the counts
+    auto indices_pair = find_indices(source_count);
+    auto firsts = indices_pair.first;
+    auto lasts = indices_pair.second;
+
     for (auto& stop: stops) {
-        std::sort(stop.transfers.begin(), stop.transfers.end());
-        std::sort(stop.backward_transfers.begin(), stop.backward_transfers.end());
+        stop.transfers = {_transfers, firsts[stop.id], lasts[stop.id]};
+    }
+
+    indices_pair = find_indices(target_count);
+    firsts = indices_pair.first;
+    lasts = indices_pair.second;
+
+    for (auto& stop: stops) {
+        stop.backward_transfers = {_backward_transfers, firsts[stop.id], lasts[stop.id]};
     }
 }
 
 
 void Timetable::parse_hubs() {
-    inverse_in_hubs.resize(max_node_id + 1);
-
     igzstream in_hubs_file_stream {(path + "in_hubs.gr.gz").c_str()};
     io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<' '>> in_hubs_reader {"in_hubs.gr", in_hubs_file_stream};
     in_hubs_reader.set_header("node_id", "stop_id", "distance");
@@ -82,39 +132,63 @@ void Timetable::parse_hubs() {
     node_id_t stop_id;
     distance_t distance;
 
+    std::map<node_id_t, size_t> in_hubs_stop_count;
+
     while (in_hubs_reader.read_row(node_id, stop_id, distance)) {
         auto time = distance_to_time(distance);
+        in_hubs_stop_count[stop_id] += 1;
 
         if (node_id > max_node_id) {
             max_node_id = node_id;
-            inverse_in_hubs.resize(max_node_id + 1);
         }
 
-        stops[stop_id].in_hubs.emplace_back(time, node_id);
-        inverse_in_hubs[node_id].emplace_back(time, stop_id);
+        _in_hubs.emplace_back(stop_id, node_id, time);
     }
-
-    inverse_out_hubs.resize(max_node_id + 1);
 
     igzstream out_hubs_file_stream {(path + "out_hubs.gr.gz").c_str()};
     io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<' '>> out_hubs_reader {"out_hubs.gr", out_hubs_file_stream};
     out_hubs_reader.set_header("stop_id", "node_id", "distance");
 
+    std::map<node_id_t, size_t> out_hubs_stop_count;
+
     while (out_hubs_reader.read_row(stop_id, node_id, distance)) {
         auto time = distance_to_time(distance);
+        out_hubs_stop_count[stop_id] += 1;
 
         if (node_id > max_node_id) {
             max_node_id = node_id;
-            inverse_out_hubs.resize(max_node_id + 1);
         }
 
-        stops[stop_id].out_hubs.emplace_back(time, node_id);
-        inverse_out_hubs[node_id].emplace_back(time, stop_id);
+        _out_hubs.emplace_back(stop_id, node_id, time);
     }
 
+    std::sort(_in_hubs.begin(), _in_hubs.end(),
+              [](const HubLink& t1, const HubLink& t2) {
+                  return std::make_tuple(t1.stop_id, t1.time, t1.hub_id) <
+                         std::make_tuple(t2.stop_id, t2.time, t2.hub_id);
+              });
+
+    std::sort(_out_hubs.begin(), _out_hubs.end(),
+              [](const HubLink& t1, const HubLink& t2) {
+                  return std::make_tuple(t1.stop_id, t1.time, t1.hub_id) <
+                         std::make_tuple(t2.stop_id, t2.time, t2.hub_id);
+              });
+
+    // Compute the cumulative sum from the counts
+    auto indices_pair = find_indices(in_hubs_stop_count);
+    auto firsts = indices_pair.first;
+    auto lasts = indices_pair.second;
+
     for (auto& stop: stops) {
-        std::sort(stop.in_hubs.begin(), stop.in_hubs.end());
-        std::sort(stop.out_hubs.begin(), stop.out_hubs.end());
+        stop.in_hubs = {_in_hubs, firsts[stop.id], lasts[stop.id]};
+    }
+
+    indices_pair = find_indices(out_hubs_stop_count);
+    firsts = indices_pair.first;
+    lasts = indices_pair.second;
+
+    for (auto& stop: stops) {
+        stop.out_hubs = {_out_hubs, firsts[stop.id], lasts[stop.id]};
     }
 }
 
@@ -164,13 +238,8 @@ void Timetable::summary() const {
     std::cout << "Summary of the dataset:" << std::endl;
     std::cout << "Name: " << name << std::endl;
 
-    int count_transfers = 0;
-    int count_hubs = 0;
-    for (const auto& stop: stops) {
-        count_transfers += stop.transfers.size();
-        count_hubs += stop.in_hubs.size();
-        count_hubs += stop.out_hubs.size();
-    }
+    size_t count_transfers = _transfers.size();
+    size_t count_hubs = _in_hubs.size() + _out_hubs.size();
 
     std::cout << stops.size() << " stops" << std::endl;
 
@@ -191,5 +260,5 @@ void Timetable::summary() const {
 Time distance_to_time(const distance_t& d) {
     static const double v {4.0};  // km/h
 
-    return Time {static_cast<Time>(std::lround(9 * d / 25 / v))};
+    return Time {static_cast<Time>(std::lround(9.0 * d / 25 / v))};
 }

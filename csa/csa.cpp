@@ -16,25 +16,28 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
     // Walk from the source to all of its neighbours
     if (!use_hl) {
         for (const auto& transfer: _timetable->stops[source_id].transfers) {
-            earliest_arrival_time[transfer.dest_id] = departure_time + transfer.time;
+            earliest_arrival_time[transfer.target_id] = departure_time + transfer.time;
         }
     } else {
         // Propagate the departure time from the source stop to all its out-hubs
-        for (const auto& hub_pair: _timetable->stops[source_id].out_hubs) {
-            const auto& walking_time = hub_pair.first;
-            const auto& hub_id = hub_pair.second;
+        for (const auto& hub_link: _timetable->stops[source_id].out_hubs) {
+            const auto& walking_time = hub_link.time;
+            const auto& hub_id = hub_link.hub_id;
 
             tmp_time = departure_time + walking_time;
             earliest_arrival_time[hub_id] = tmp_time;
+        }
 
-            // Then propagate from the out-hubs to its inverse in-hubs
-            for (const auto& inverse_hub_pair: _timetable->inverse_in_hubs[hub_id]) {
-                const auto& _walking_time = inverse_hub_pair.first;
-                const auto& stop_id = inverse_hub_pair.second;
+        for (const auto& stop: _timetable->stops) {
+            const auto& stop_id = stop.id;
+
+            for (const auto& hub_link: stop.in_hubs) {
+                const auto& walking_time = hub_link.time;
+                const auto& hub_id = hub_link.hub_id;
 
                 earliest_arrival_time[stop_id] = std::min(
                         earliest_arrival_time[stop_id],
-                        tmp_time + _walking_time
+                        earliest_arrival_time[hub_id] + walking_time
                 );
             }
         }
@@ -64,16 +67,7 @@ Time ConnectionScan::query(const node_id_t& source_id, const node_id_t& target_i
             // We need to check if earliest_arrival_time[target_id] can still be improved
             // before break out of the loop
             if (use_hl) {
-                for (const auto& hub_pair: _timetable->stops[target_id].in_hubs) {
-                    const auto& walking_time = hub_pair.first;
-                    const auto& hub_id = hub_pair.second;
-
-                    tmp_time = earliest_arrival_time[hub_id] + walking_time;
-
-                    if (tmp_time < earliest_arrival_time[target_id]) {
-                        earliest_arrival_time[target_id] = tmp_time;
-                    }
-                }
+                update_departure_stop(target_id);
             }
 
             break;
@@ -108,7 +102,7 @@ void ConnectionScan::init() {
 
     stop_profile.resize(_timetable->max_node_id + 1);
     trip_earliest_time.assign(_timetable->max_trip_id + 1, INF);
-    walking_time_to_target.assign(_timetable->max_trip_id + 1, INF);
+    walking_time_to_target.assign(_timetable->max_node_id + 1, INF);
 }
 
 
@@ -132,9 +126,9 @@ void ConnectionScan::update_departure_stop(const node_id_t& dep_id) {
 
     Time tmp_time;
 
-    for (const auto& hub_pair: _timetable->stops[dep_id].in_hubs) {
-        const auto& walking_time = hub_pair.first;
-        const auto& hub_id = hub_pair.second;
+    for (const auto& hub_link: _timetable->stops[dep_id].in_hubs) {
+        const auto& walking_time = hub_link.time;
+        const auto& hub_id = hub_link.hub_id;
 
         tmp_time = earliest_arrival_time[hub_id] + walking_time;
 
@@ -169,15 +163,15 @@ void ConnectionScan::update_out_hubs(const node_id_t& arr_id, const Time& arriva
             // of the destination is later than that of the target stop
             if (tmp_time > earliest_arrival_time[target_id]) break;
 
-            if (tmp_time < earliest_arrival_time[transfer.dest_id]) {
-                earliest_arrival_time[transfer.dest_id] = tmp_time;
+            if (tmp_time < earliest_arrival_time[transfer.target_id]) {
+                earliest_arrival_time[transfer.target_id] = tmp_time;
             }
         }
     } else {
         // Update the earliest arrival time of the out-hubs of the arrival stop
-        for (const auto& hub_pair: arrival_stop.out_hubs) {
-            const auto& walking_time = hub_pair.first;
-            const auto& hub_id = hub_pair.second;
+        for (const auto& hub_link: arrival_stop.out_hubs) {
+            const auto& walking_time = hub_link.time;
+            const auto& hub_id = hub_link.hub_id;
 
             tmp_time = arrival_time + walking_time;
 
@@ -254,7 +248,7 @@ ProfilePareto ConnectionScan::profile_query(const node_id_t& source_id,
             stop_profile[conn_iter->departure_stop_id].emplace(conn_pair, false);
 
             for (const auto& transfer: _timetable->stops[conn_iter->departure_stop_id].backward_transfers) {
-                stop_profile[transfer.dest_id].emplace(conn_iter->departure_time - transfer.time, t_conn);
+                stop_profile[transfer.target_id].emplace(conn_iter->departure_time - transfer.time, t_conn);
             }
         }
 

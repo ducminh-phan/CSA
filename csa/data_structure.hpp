@@ -35,26 +35,50 @@ using Events = std::vector<StopTimeEvent>;
 
 
 struct Transfer {
-    node_id_t dest_id;
+    node_id_t source_id;
+    node_id_t target_id;
     Time time;
 
-    Transfer(node_id_t dest, Time time) : dest_id {dest}, time {time} {};
-
-    friend bool operator<(const Transfer& t1, const Transfer& t2) {
-        return (t1.time < t2.time) || ((t1.time == t2.time) && (t1.dest_id < t2.dest_id));
-    }
+    Transfer(node_id_t s, node_id_t t, Time tm) : source_id {s}, target_id {t}, time {tm} {};
 };
 
 
-using hubs_t = std::vector<std::pair<Time, node_id_t>>;
+struct HubLink {
+    node_id_t stop_id;
+    node_id_t hub_id;
+    Time time;
+
+    HubLink(node_id_t s, node_id_t h, Time tm) : stop_id {s}, hub_id {h}, time {tm} {};
+};
+
+
+template<class T>
+class VectorView {
+public:
+    using Container = std::vector<T>;
+    using Iterator = typename Container::const_iterator;
+
+private:
+    Iterator _begin, _end;
+
+public:
+    VectorView() = default;
+
+    VectorView(const Container& vec, size_t first_idx, size_t last_idx) :
+            _begin {vec.begin() + first_idx}, _end {vec.begin() + last_idx} {};
+
+    Iterator begin() const { return _begin; }
+
+    Iterator end() const { return _end; }
+};
 
 
 struct Stop {
     node_id_t id;
-    std::vector<Transfer> transfers;
-    std::vector<Transfer> backward_transfers;
-    hubs_t in_hubs;
-    hubs_t out_hubs;
+    VectorView<Transfer> transfers;
+    VectorView<Transfer> backward_transfers;
+    VectorView<HubLink> in_hubs;
+    VectorView<HubLink> out_hubs;
 
     explicit Stop(node_id_t sid) : id {sid} {};
 };
@@ -88,6 +112,11 @@ public:
 
 class Timetable {
 private:
+    VectorView<Transfer>::Container _transfers;
+    VectorView<Transfer>::Container _backward_transfers;
+    VectorView<HubLink>::Container _in_hubs;
+    VectorView<HubLink>::Container _out_hubs;
+
     void parse_data();
 
     void parse_stops();
@@ -102,8 +131,6 @@ public:
     std::string path;
     std::vector<Connection> connections;
     std::vector<Stop> stops;
-    std::vector<hubs_t> inverse_in_hubs;
-    std::vector<hubs_t> inverse_out_hubs;
     std::size_t max_node_id = 0;
     std::size_t max_trip_id = 0;
 
