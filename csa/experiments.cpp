@@ -19,11 +19,16 @@ void write_results(const Results& results) {
 
     running_time_file << std::fixed << std::setprecision(4);
 
+    double total_running_time = 0;
+
     for (const auto& result: results) {
         running_time_file << result.running_time << '\n';
+        total_running_time += result.running_time;
 
         arrival_time_file << result.arrival_time << '\n';
     }
+
+    std::cout << "Average running time: " << total_running_time / results.size() << Timer().unit() << '\n';
 }
 
 
@@ -36,7 +41,7 @@ Queries Experiment::read_queries() {
     queries_file_reader.read_header(io::ignore_no_column, "rank", "source", "target", "time");
 
     uint16_t r;
-    node_id_t s, t;
+    NodeID s, t;
     Time d;
 
     while (queries_file_reader.read_row(r, s, t, d)) {

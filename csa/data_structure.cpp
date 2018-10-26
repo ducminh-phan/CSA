@@ -52,13 +52,13 @@ void Timetable::parse_stops() {
     io::CSVReader<1> stop_routes_reader {"stop_routes.csv", stop_routes_file_stream};
     stop_routes_reader.read_header(io::ignore_extra_column, "stop_id");
 
-    node_id_t stop_id;
+    NodeID stop_id;
 
     while (stop_routes_reader.read_row(stop_id)) {
 
         // Add a new stop if we encounter a new id, note that we might have a missing id.
         while (stops.size() <= stop_id) {
-            stops.emplace_back(static_cast<node_id_t>(stops.size()));
+            stops.emplace_back(static_cast<NodeID>(stops.size()));
         }
     }
 
@@ -71,12 +71,12 @@ void Timetable::parse_transfers() {
     io::CSVReader<3> transfers_reader {"transfers.csv", transfers_file_stream};
     transfers_reader.read_header(io::ignore_no_column, "from_stop_id", "to_stop_id", "min_transfer_time");
 
-    node_id_t source_id;
-    node_id_t target_id;
+    NodeID source_id;
+    NodeID target_id;
     Time time;
 
-    std::map<node_id_t, size_t> source_count;
-    std::map<node_id_t, size_t> target_count;
+    std::map<NodeID, size_t> source_count;
+    std::map<NodeID, size_t> target_count;
 
     while (transfers_reader.read_row(source_id, target_id, time)) {
         _transfers.emplace_back(source_id, target_id, time);
@@ -128,11 +128,11 @@ void Timetable::parse_hubs() {
     io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<' '>> in_hubs_reader {"in_hubs.gr", in_hubs_file_stream};
     in_hubs_reader.set_header("node_id", "stop_id", "distance");
 
-    node_id_t node_id;
-    node_id_t stop_id;
-    distance_t distance;
+    NodeID node_id;
+    NodeID stop_id;
+    Distance distance;
 
-    std::map<node_id_t, size_t> in_hubs_stop_count;
+    std::map<NodeID, size_t> in_hubs_stop_count;
 
     while (in_hubs_reader.read_row(node_id, stop_id, distance)) {
         auto time = distance_to_time(distance);
@@ -149,7 +149,7 @@ void Timetable::parse_hubs() {
     io::CSVReader<3, io::trim_chars<>, io::no_quote_escape<' '>> out_hubs_reader {"out_hubs.gr", out_hubs_file_stream};
     out_hubs_reader.set_header("stop_id", "node_id", "distance");
 
-    std::map<node_id_t, size_t> out_hubs_stop_count;
+    std::map<NodeID, size_t> out_hubs_stop_count;
 
     while (out_hubs_reader.read_row(stop_id, node_id, distance)) {
         auto time = distance_to_time(distance);
@@ -199,12 +199,12 @@ void Timetable::parse_connections() {
     stop_times_reader.read_header(io::ignore_no_column, "trip_id", "arrival_time", "departure_time", "stop_id",
                                   "stop_sequence");
 
-    trip_id_t trip_id;
+    TripID trip_id;
     Time arr, dep;
-    node_id_t stop_id;
+    NodeID stop_id;
     int stop_sequence;
 
-    std::unordered_map<trip_id_t, Events> trip_events;
+    std::unordered_map<TripID, Events> trip_events;
 
     while (stop_times_reader.read_row(trip_id, arr, dep, stop_id, stop_sequence)) {
         trip_events[trip_id].emplace_back(stop_id, arr, dep, stop_sequence);
@@ -217,8 +217,8 @@ void Timetable::parse_connections() {
         Events events = kv.second;
 
         for (size_t i = 0; i < events.size() - 1; ++i) {
-            node_id_t departure_stop_id = events[i].stop_id;
-            node_id_t arrival_stop_id = events[i + 1].stop_id;
+            NodeID departure_stop_id = events[i].stop_id;
+            NodeID arrival_stop_id = events[i + 1].stop_id;
 
             Time departure_time = events[i].departure_time;
             Time arrival_time = events[i + 1].arrival_time;
@@ -257,7 +257,7 @@ void Timetable::summary() const {
 }
 
 
-Time distance_to_time(const distance_t& d) {
+Time distance_to_time(const Distance& d) {
     static const double v {4.0};  // km/h
 
     return Time {static_cast<Time>(std::lround(9.0 * d / 25 / v))};

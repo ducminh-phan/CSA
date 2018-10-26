@@ -11,23 +11,22 @@
 #include "config.hpp"
 #include "utilities.hpp"
 
-using node_id_t = uint32_t;
-using trip_id_t = int32_t;
-using distance_t = uint32_t;
-using Time = int32_t;
+using NodeID = uint32_t;
+using TripID = uint32_t;
+using Distance = uint32_t;
+using Time = uint32_t;
 
-// The constants 1e9 and -1e9 are chosen such that ∞ + ∞ does not overflow
+// The constant 1e9 is chosen such that ∞ + ∞ does not overflow
 constexpr Time INF = static_cast<Time>(1e9);
-constexpr Time NEG_INF = static_cast<Time>(-1e9);
 
 
 struct StopTimeEvent {
-    node_id_t stop_id;
+    NodeID stop_id;
     Time arrival_time;
     Time departure_time;
     int stop_sequence;
 
-    StopTimeEvent(node_id_t sid, Time at, Time dt, int seq) :
+    StopTimeEvent(NodeID sid, Time at, Time dt, int seq) :
             stop_id {sid}, arrival_time {at}, departure_time {dt}, stop_sequence {seq} {};
 };
 
@@ -35,20 +34,20 @@ using Events = std::vector<StopTimeEvent>;
 
 
 struct Transfer {
-    node_id_t source_id;
-    node_id_t target_id;
+    NodeID source_id;
+    NodeID target_id;
     Time time;
 
-    Transfer(node_id_t s, node_id_t t, Time tm) : source_id {s}, target_id {t}, time {tm} {};
+    Transfer(NodeID s, NodeID t, Time tm) : source_id {s}, target_id {t}, time {tm} {};
 };
 
 
 struct HubLink {
-    node_id_t stop_id;
-    node_id_t hub_id;
+    NodeID stop_id;
+    NodeID hub_id;
     Time time;
 
-    HubLink(node_id_t s, node_id_t h, Time tm) : stop_id {s}, hub_id {h}, time {tm} {};
+    HubLink(NodeID s, NodeID h, Time tm) : stop_id {s}, hub_id {h}, time {tm} {};
 };
 
 
@@ -74,27 +73,27 @@ public:
 
 
 struct Stop {
-    node_id_t id;
+    NodeID id;
     VectorView<Transfer> transfers;
     VectorView<Transfer> backward_transfers;
     VectorView<HubLink> in_hubs;
     VectorView<HubLink> out_hubs;
 
-    explicit Stop(node_id_t sid) : id {sid} {};
+    explicit Stop(NodeID sid) : id {sid} {};
 };
 
 
 class Connection {
 private:
-    std::tuple<Time, Time, trip_id_t, int> _tuple;
+    std::tuple<Time, Time, TripID, int> _tuple;
 
 public:
-    trip_id_t trip_id;
-    node_id_t departure_stop_id, arrival_stop_id;
+    TripID trip_id;
+    NodeID departure_stop_id, arrival_stop_id;
     Time departure_time, arrival_time;
     int stop_sequence;
 
-    Connection(trip_id_t tid, node_id_t dsid, node_id_t asid, Time dt, Time at, int seq) :
+    Connection(TripID tid, NodeID dsid, NodeID asid, Time dt, Time at, int seq) :
             trip_id {tid}, departure_stop_id {dsid}, arrival_stop_id {asid},
             departure_time {dt}, arrival_time {at}, stop_sequence {seq} {
         _tuple = {departure_time, arrival_time, trip_id, stop_sequence};
@@ -143,6 +142,6 @@ public:
 };
 
 
-Time distance_to_time(const distance_t& d);
+Time distance_to_time(const Distance& d);
 
 #endif // DATA_STRUCTURE_HPP
