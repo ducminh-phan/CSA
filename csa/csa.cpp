@@ -217,7 +217,7 @@ ProfilePareto ConnectionScan::profile_query(const NodeID& source_id,
     const auto& first = _timetable->connections.rbegin();
     const auto& last = _timetable->connections.rend();
 
-    Time t1, t2, t3, t_conn;
+    Time t1, t2, t3, t3h, t_conn;
 
     // Iterate over the connection in the decreasing order by departure time
     for (auto conn_iter = first; conn_iter != last; ++conn_iter) {
@@ -233,7 +233,18 @@ ProfilePareto ConnectionScan::profile_query(const NodeID& source_id,
         t2 = trip_earliest_time[conn_iter->trip_id];
 
         // Arrival time when transferring
-        t3 = arrival_time_when_transfer(*conn_iter);
+        t3 = arrival_time_from_node(conn_iter->arrival_stop_id, conn_iter->arrival_time);
+
+        // Arrival time when walking to the out-hubs
+        if (use_hl) {
+            for (const auto& hub_link: _timetable->stops[conn_iter->arrival_stop_id].out_hubs) {
+                // When walking from the arrival stop to the out-hub h, we arrive at h
+                // at time conn_iter->arrival_time + hub_link.time
+                t3h = arrival_time_from_node(hub_link.hub_id,
+                                             conn_iter->arrival_time + hub_link.time);
+                t3 = std::min(t3, t3h);
+            }
+        }
 
         // Arrival time when starting with the current connection
         t_conn = std::min({t1, t2, t3});
@@ -250,8 +261,14 @@ ProfilePareto ConnectionScan::profile_query(const NodeID& source_id,
             // We do not need to check if conn_pair is dominated again
             stop_profile[conn_iter->departure_stop_id].emplace(conn_pair, false);
 
-            for (const auto& transfer: _timetable->stops[conn_iter->departure_stop_id].backward_transfers) {
-                stop_profile[transfer.target_id].emplace(conn_iter->departure_time - transfer.time, t_conn);
+            if (!use_hl) {
+                for (const auto& transfer: _timetable->stops[conn_iter->departure_stop_id].backward_transfers) {
+                    stop_profile[transfer.target_id].emplace(conn_iter->departure_time - transfer.time, t_conn);
+                }
+            } else {
+                for (const auto& hub_link: _timetable->stops[conn_iter->departure_stop_id].in_hubs) {
+                    stop_profile[hub_link.hub_id].emplace(conn_iter->departure_time - hub_link.time, t_conn);
+                }
             }
         }
 
@@ -262,21 +279,21 @@ ProfilePareto ConnectionScan::profile_query(const NodeID& source_id,
 }
 
 
-// Arrival time when transferring to another route using the same stop. Since in the profile,
-// both the departure time and arrival time are in decreasing order, we only need to find
-// the last pair with departure time at least conn_iter->arrival_time
+// Arrival time at the target when we start from any node at a given arrival time at the node.
+// Since in the profile, both the departure time and arrival time are in decreasing order,
+// we only need to find the last pair with departure time at least the given arrival_time
 // TODO: compare the performance of linear search and binary search
-Time ConnectionScan::arrival_time_when_transfer(const Connection& connection) {
+Time ConnectionScan::arrival_time_from_node(const NodeID& node_id, const Time& arrival_time) {
     ProfilePareto::pair_t p;
 
-    auto first = stop_profile[connection.arrival_stop_id].rbegin();
-    auto last = stop_profile[connection.arrival_stop_id].rend();
+    auto first = stop_profile[node_id].rbegin();
+    auto last = stop_profile[node_id].rend();
 
     for (auto iter = first; iter != last; ++iter) {
         // We are iterating in the reverse order, starting from the back of the profile vector,
         // thus the first profile pair with departure time >= the arrival time of the connection
         // will be the pair we need
-        if (iter->dep >= connection.arrival_time) {
+        if (iter->dep >= arrival_time) {
             p = *iter;
             break;
         }

@@ -19,7 +19,7 @@ private:
 
     void update_out_hubs(const NodeID& arr_id, const Time& arrival_time, const NodeID& target_id);
 
-    Time arrival_time_when_transfer(const Connection& connection);
+    Time arrival_time_from_node(const NodeID& node_id, const Time& arrival_time);
 
 public:
     explicit ConnectionScan(const Timetable* timetable_p) : _timetable {timetable_p} {};
