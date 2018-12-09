@@ -9,11 +9,11 @@
 
 struct Query {
     uint16_t rank;
-    node_id_t source_id;
-    node_id_t target_id;
+    NodeID source_id;
+    NodeID target_id;
     Time dep;
 
-    Query(uint16_t r, node_id_t s, node_id_t t, Time::value_type d) :
+    Query(uint16_t r, NodeID s, NodeID t, Time d) :
             rank {r}, source_id {s}, target_id {t}, dep {d} {};
 };
 
@@ -35,19 +35,17 @@ struct Result {
 using Results = std::vector<Result>;
 
 
-void write_results(const Results& results, const std::string& name);
-
-
 class Experiment {
 private:
-    const Timetable* const m_timetable;
-    const Queries m_queries;
+    const Timetable _timetable;
+    const Queries _queries;
 
     Queries read_queries();
 
 public:
-    explicit Experiment(const Timetable* timetable) :
-            m_timetable {timetable}, m_queries {read_queries()} {}
+    Experiment() : _timetable {}, _queries {read_queries()} {
+        _timetable.summary();
+    }
 
     void run() const;
 };
