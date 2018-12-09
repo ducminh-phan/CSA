@@ -134,7 +134,7 @@ public:
     std::size_t max_trip_id = 0;
 
     Timetable() {
-        path = "../Public-Transit-Data/" + name + "/";
+        path = "../../Public-Transit-Data/" + name + "/";
         parse_data();
     }
 
