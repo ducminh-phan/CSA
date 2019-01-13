@@ -5,7 +5,6 @@
 #include "experiments.hpp"
 #include "csa.hpp"
 #include "csv.h"
-#include "gzstream.h"
 
 
 void write_results(const Results& results) {
@@ -36,7 +35,7 @@ Queries Experiment::read_queries() {
     Queries queries;
     std::string rank_str = ranked ? "rank_" : "";
 
-    igzstream queries_file_stream {(_timetable.path + rank_str + "queries.csv").c_str()};
+    std::ifstream queries_file_stream {_timetable.path + rank_str + "queries.csv"};
     io::CSVReader<4> queries_file_reader {"queries.csv", queries_file_stream};
     queries_file_reader.read_header(io::ignore_no_column, "rank", "source", "target", "time");
 
