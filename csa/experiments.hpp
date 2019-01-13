@@ -25,10 +25,12 @@ struct Result {
     uint16_t rank;
     double running_time;
     Time arrival_time;
+    std::size_t n_journey;
 
-    Result() : rank {}, running_time {}, arrival_time {} {};
+    Result() : rank {}, running_time {}, arrival_time {}, n_journey {} {};
 
-    Result(uint16_t r, double rt, Time a) : rank {r}, running_time {rt}, arrival_time {a} {};
+    Result(uint16_t r, double rt, Time a, std::size_t n) :
+            rank {r}, running_time {rt}, arrival_time {a}, n_journey {n} {};
 };
 
 

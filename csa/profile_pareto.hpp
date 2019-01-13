@@ -115,6 +115,10 @@ public:
     std::vector<pair_t>::const_iterator end() const {
         return _container.end();
     }
+
+    std::size_t size() const {
+        return _container.size();
+    }
 };
 
 #endif // PROFILE_PARETO_HPP

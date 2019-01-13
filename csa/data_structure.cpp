@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cmath>
 #include <map>
 #include <unordered_map>
 
@@ -130,19 +129,18 @@ void Timetable::parse_hubs() {
 
     NodeID node_id;
     NodeID stop_id;
-    Distance distance;
+    Time walking_time;
 
     std::map<NodeID, size_t> in_hubs_stop_count;
 
-    while (in_hubs_reader.read_row(node_id, stop_id, distance)) {
-        auto time = distance_to_time(distance);
+    while (in_hubs_reader.read_row(node_id, stop_id, walking_time)) {
         in_hubs_stop_count[stop_id] += 1;
 
         if (node_id > max_node_id) {
             max_node_id = node_id;
         }
 
-        _in_hubs.emplace_back(stop_id, node_id, time);
+        _in_hubs.emplace_back(stop_id, node_id, walking_time);
     }
 
     igzstream out_hubs_file_stream {(path + "out_hubs.gr.gz").c_str()};
@@ -151,15 +149,14 @@ void Timetable::parse_hubs() {
 
     std::map<NodeID, size_t> out_hubs_stop_count;
 
-    while (out_hubs_reader.read_row(stop_id, node_id, distance)) {
-        auto time = distance_to_time(distance);
+    while (out_hubs_reader.read_row(stop_id, node_id, walking_time)) {
         out_hubs_stop_count[stop_id] += 1;
 
         if (node_id > max_node_id) {
             max_node_id = node_id;
         }
 
-        _out_hubs.emplace_back(stop_id, node_id, time);
+        _out_hubs.emplace_back(stop_id, node_id, walking_time);
     }
 
     std::sort(_in_hubs.begin(), _in_hubs.end(),
@@ -254,11 +251,4 @@ void Timetable::summary() const {
     std::cout << connections.size() << " connections" << std::endl;
 
     std::cout << std::string(80, '-') << std::endl;
-}
-
-
-Time distance_to_time(const Distance& d) {
-    static const double v {4.0};  // km/h
-
-    return Time {static_cast<Time>(std::lround(9.0 * d / 25 / v))};
 }

@@ -142,6 +142,4 @@ public:
 };
 
 
-Time distance_to_time(const Distance& d);
-
 #endif // DATA_STRUCTURE_HPP

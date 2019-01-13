@@ -5,27 +5,36 @@
 #include "experiments.hpp"
 #include "csa.hpp"
 #include "csv.h"
-#include "gzstream.h"
 
 
 void write_results(const Results& results) {
-    std::string algo_str = use_hl ? "HLCSA" : "CSA";
+    std::string profile_prefix = profile ? "p" : "";
+    std::string hub_prefix = use_hl ? "HL" : "";
+    std::string algo_str = profile_prefix + hub_prefix + "CSA";
 
-    std::ofstream running_time_file {"../" + name + '_' + algo_str + "_running_time.csv"};
-    std::ofstream arrival_time_file {"../" + name + '_' + algo_str + "_arrival_times.csv"};
+    std::ofstream stats_file {"../" + name + '_' + algo_str + "_stats.csv"};
 
-    running_time_file << "running_time\n";
-    arrival_time_file << "arrival_time\n";
+    stats_file << "running_time";
 
-    running_time_file << std::fixed << std::setprecision(4);
+    if (profile) {
+        stats_file << ",n_journey\n";
+    } else {
+        stats_file << ",arrival_time\n";
+    }
+
+    stats_file << std::fixed << std::setprecision(4);
 
     double total_running_time = 0;
 
     for (const auto& result: results) {
-        running_time_file << result.running_time << '\n';
+        stats_file << result.running_time;
         total_running_time += result.running_time;
 
-        arrival_time_file << result.arrival_time << '\n';
+        if (profile) {
+            stats_file << ',' << result.n_journey << '\n';
+        } else {
+            stats_file << ',' << result.arrival_time << '\n';
+        }
     }
 
     std::cout << "Average running time: " << total_running_time / results.size() << Timer().unit() << '\n';
@@ -36,7 +45,7 @@ Queries Experiment::read_queries() {
     Queries queries;
     std::string rank_str = ranked ? "rank_" : "";
 
-    igzstream queries_file_stream {(_timetable.path + rank_str + "queries.csv").c_str()};
+    std::ifstream queries_file_stream {_timetable.path + rank_str + "queries.csv"};
     io::CSVReader<4> queries_file_reader {"queries.csv", queries_file_stream};
     queries_file_reader.read_header(io::ignore_no_column, "rank", "source", "target", "time");
 
@@ -57,6 +66,7 @@ void Experiment::run() const {
     ConnectionScan csa {&_timetable};
     Time arrival_time {INF};
     ProfilePareto prof;
+    std::size_t n_journey {0};
 
     res.resize(_queries.size());
     for (size_t i = 0; i < _queries.size(); ++i) {
@@ -69,11 +79,12 @@ void Experiment::run() const {
             arrival_time = csa.query(query.source_id, query.target_id, query.dep);
         } else {
             prof = csa.profile_query(query.source_id, query.target_id);
+            n_journey = prof.size();
         }
 
         double running_time = timer.elapsed();
 
-        res[i] = {query.rank, running_time, arrival_time};
+        res[i] = {query.rank, running_time, arrival_time, n_journey};
         csa.clear();
 
         std::cout << i << std::endl;
